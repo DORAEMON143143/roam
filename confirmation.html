@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f0">
+  <title>Booking confirmed — roam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      font-family: "DM Sans", sans-serif;
+      color: #17211d;
+      background: #f6f5f0;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; min-height: 100vh; margin: 0; overflow-x: hidden; }
+    a { color: inherit; text-decoration: none; }
+    .page { width: min(760px, calc(100% - 36px)); margin: 0 auto; }
+    .topbar { height: 82px; display: flex; align-items: center; justify-content: space-between; animation: fade-up .6s both; }
+    .brand { display: inline-flex; gap: 10px; align-items: center; font: 800 24px Manrope,sans-serif; letter-spacing: -1.6px; }
+    .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: #c8ef75; transform: rotate(-8deg); }
+    .brand-mark svg { transform: rotate(8deg); }
+    .top-note { color: #7d8778; font-size: 11px; font-weight: 600; }
+    main { position: relative; padding: 45px 0 72px; }
+    main:before, main:after { position: absolute; z-index: -1; width: 260px; height: 260px; border-radius: 50%; content: ""; filter: blur(1px); }
+    main:before { top: -40px; left: -180px; background: #e6edda; }
+    main:after { right: -200px; bottom: 5px; background: #f0dfcf; }
+    .confirmation-card { position: relative; overflow: hidden; border: 1px solid #e8e8df; border-radius: 25px; background: #fffefa; box-shadow: 0 24px 70px #222b2312; animation: card-arrive .75s cubic-bezier(.2,.8,.2,1) both; }
+    .success-head { position: relative; padding: 38px 42px 32px; border-bottom: 1px dashed #dfe4d8; text-align: center; }
+    .success-head:after { position: absolute; right: -12px; bottom: -12px; width: 24px; height: 24px; border-radius: 50%; background: #f6f5f0; box-shadow: -1000px 0 0 #f6f5f0; content: ""; }
+    .success-mark { width: 76px; height: 76px; display: grid; place-items: center; margin: 0 auto 18px; border: 8px solid #eaf2dd; border-radius: 50%; color: #fff; background: #294528; box-shadow: 0 12px 25px #29452830; animation: check-pop .65s .22s cubic-bezier(.2,.8,.2,1.3) both; }
+    .success-mark svg { width: 31px; height: 31px; }
+    .eyebrow { color: #7e9365; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+    h1 { margin: 8px 0 8px; font: 700 clamp(28px,5vw,39px)/1.15 Manrope,sans-serif; letter-spacing: -1.7px; }
+    .success-copy { margin: 0; color: #778177; font-size: 13px; line-height: 1.7; }
+    .receipt { padding: 28px 42px 34px; }
+    .receipt-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 23px; }
+    .receipt-label { color: #929991; font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
+    .reference { margin-top: 5px; font: 800 13px Manrope,sans-serif; letter-spacing: .5px; }
+    .demo-badge { padding: 7px 10px; border: 1px solid #dfe8d4; border-radius: 20px; color: #526946; background: #f1f6e9; font-size: 9px; font-weight: 800; letter-spacing: .55px; white-space: nowrap; }
+    .route { display: grid; grid-template-columns: 1fr 100px 1fr; align-items: center; gap: 14px; padding: 21px; border-radius: 15px; background: #f5f7f0; animation: fade-up .55s .3s both; }
+    .city small, .detail small { display: block; color: #929991; font-size: 9px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+    .city strong { display: block; margin-top: 6px; font: 800 clamp(18px,3vw,24px) Manrope,sans-serif; letter-spacing: -.8px; }
+    .city:last-child { text-align: right; }
+    .route-track { position: relative; height: 1px; border-top: 1px dashed #aab69d; }
+    .route-track:before, .route-track:after { position: absolute; top: -4px; width: 7px; height: 7px; border-radius: 50%; background: #91a976; content: ""; }
+    .route-track:before { left: 0; } .route-track:after { right: 0; }
+    .route-track span { position: absolute; top: -20px; left: 50%; width: max-content; color: #76836e; font-size: 9px; font-weight: 700; transform: translateX(-50%); }
+    .details { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px 14px; margin-top: 26px; }
+    .detail { min-width: 0; animation: fade-up .5s both; }
+    .detail:nth-child(2) { animation-delay: .08s; } .detail:nth-child(3) { animation-delay: .12s; }
+    .detail:nth-child(4) { animation-delay: .16s; } .detail:nth-child(5) { animation-delay: .2s; } .detail:nth-child(6) { animation-delay: .24s; }
+    .detail strong { display: block; overflow: hidden; margin-top: 6px; font-size: 12px; line-height: 1.5; text-overflow: ellipsis; }
+    .fare-line { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-top: 27px; padding-top: 18px; border-top: 1px solid #edeee7; }
+    .fare-line small { display: block; color: #929991; font-size: 10px; }
+    .fare-total { font: 800 23px Manrope,sans-serif; letter-spacing: -.7px; }
+    .receipt-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 25px; }
+    .receipt-foot p { margin: 0; color: #929991; font-size: 10px; line-height: 1.6; }
+    .return-button { min-height: 43px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border: 0; border-radius: 9px; color: white; background: #253522; cursor: pointer; font: 700 11px "DM Sans",sans-serif; transition: transform .2s, background .2s; white-space: nowrap; }
+    .return-button:hover { transform: translateY(-2px); background: #40563a; }
+    .missing { display: none; padding: 40px; border: 1px solid #e8e8df; border-radius: 20px; background: #fffefa; text-align: center; box-shadow: 0 24px 70px #222b2312; animation: card-arrive .65s both; }
+    .missing h1 { font-size: 26px; }
+    .missing p { margin: 8px 0 20px; color: #778177; font-size: 13px; line-height: 1.6; }
+    footer { display: flex; justify-content: space-between; gap: 15px; padding: 0 0 25px; color: #969d94; font-size: 10px; }
+    @keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes card-arrive { from { opacity: 0; transform: translateY(20px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes check-pop { 0% { opacity: 0; transform: scale(.35) rotate(-25deg); } 75% { transform: scale(1.13) rotate(5deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+    @media (max-width: 580px) {
+      .topbar { height: 68px; }
+      main { padding: 25px 0 48px; }
+      .success-head { padding: 30px 20px 25px; }
+      .receipt { padding: 23px 20px 25px; }
+      .route { grid-template-columns: 1fr 54px 1fr; gap: 8px; padding: 16px 12px; }
+      .details { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 17px 10px; }
+      .receipt-foot { align-items: stretch; flex-direction: column; }
+      .return-button { width: 100%; }
+      .missing { padding: 30px 20px; }
+      footer { flex-direction: column; font-size: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *:before, *:after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="roam home">
+        <span class="brand-mark"><svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 14.5 8.2 4l2.2 5 1.8-3.4L17 14.5H3Z" stroke="#253522" stroke-width="1.7" stroke-linejoin="round"/><circle cx="14.8" cy="4.3" r="1.3" fill="#F07D4F"/></svg></span>
+        roam
+      </a>
+      <span class="top-note">Your next adventure, sorted.</span>
+    </header>
+    <main>
+      <section class="confirmation-card" id="confirmation-card" aria-labelledby="confirmation-title" hidden>
+        <div class="success-head">
+          <div class="success-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.4 4.2L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="eyebrow">A little more you, on the way</div>
+          <h1 id="confirmation-title">Thank you. You're booked!</h1>
+          <p class="success-copy" id="success-copy">Your booking is saved for this demo journey. Here are all your details.</p>
+        </div>
+        <div class="receipt">
+          <div class="receipt-top">
+            <div><div class="receipt-label">Booking reference</div><div class="reference" id="reference"></div></div>
+            <span class="demo-badge">DEMO BOOKING</span>
+          </div>
+          <div class="route">
+            <div class="city"><small id="from-label">From</small><strong id="from"></strong></div>
+            <div class="route-track"><span id="route-caption"></span></div>
+            <div class="city"><small id="to-label">To</small><strong id="to"></strong></div>
+          </div>
+          <div class="details">
+            <div class="detail"><small id="mode-label">Travel mode</small><strong id="mode"></strong></div>
+            <div class="detail"><small id="operator-label">Service</small><strong id="operator"></strong></div>
+            <div class="detail"><small id="date-label">Departure</small><strong id="date"></strong></div>
+            <div class="detail"><small id="timing-label">Timings</small><strong id="timing"></strong></div>
+            <div class="detail"><small id="fare-label">Seat type</small><strong id="fare"></strong></div>
+            <div class="detail"><small id="seats-label">Seat number(s)</small><strong id="seats"></strong></div>
+            <div class="detail"><small id="passengers-label">Passengers</small><strong id="passengers"></strong></div>
+            <div class="detail"><small id="journey-label">Journey</small><strong id="journey-type"></strong></div>
+            <div class="detail"><small id="distance-label">Distance</small><strong id="distance"></strong></div>
+          </div>
+          <div class="fare-line">
+            <div><small>Total for <span id="total-passengers"></span></small><small id="fare-note"></small></div>
+            <strong class="fare-total" id="total"></strong>
+          </div>
+          <div class="receipt-foot">
+            <p>This is a front-end booking demo. No real ticket or payment has been issued.</p>
+            <a class="return-button" href="index.html">Plan another trip <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+      </section>
+      <section class="missing" id="missing-booking" aria-labelledby="missing-title">
+        <div class="eyebrow">No booking details found</div>
+        <h1 id="missing-title">Let's find your next journey.</h1>
+        <p>Choose your route and seats first, then your booking receipt will appear here.</p>
+        <a class="return-button" href="index.html">Back to roam <span aria-hidden="true">→</span></a>
+      </section>
+    </main>
+    <footer><span>© 2026 roam. Take the long way.</span><span>Made for the love of getting there ↗</span></footer>
+  </div>
+  <script>
+    const currency = new Intl.NumberFormat("en-IN", {style:"currency",currency:"INR",maximumFractionDigits:0});
+    let booking = null;
+    try {
+      const savedBooking = sessionStorage.getItem("roam-confirmed-booking");
+      booking = savedBooking ? JSON.parse(savedBooking) : null;
+    } catch (error) {
+      document.querySelector("#missing-title").textContent = "Your receipt could not be loaded.";
+      document.querySelector("#missing-booking p").textContent = "This browser could not access the saved booking details. Return to roam and try again.";
+    }
+    const isValidBooking = booking && typeof booking === "object" &&
+      ["reference","from","to","modeLabel","operator","date","depart","arrive","duration","fareName"].every(key => typeof booking[key] === "string") &&
+      Array.isArray(booking.seats) && Number.isFinite(booking.passengers) && Number.isFinite(booking.total);
+    if (isValidBooking) {
+      const setText = (id, value) => { document.getElementById(id).textContent = value; };
+      setText("reference", booking.reference);
+      setText("from", booking.from);
+      setText("to", booking.to);
+      const isHotelBooking = booking.type === "hotel";
+      setText("route-caption", isHotelBooking
+        ? `${booking.hotelNights} ${booking.hotelNights === 1 ? "night" : "nights"}`
+        : booking.distance ? `${booking.distance.toLocaleString("en-IN")} km` : booking.duration);
+      setText("mode", booking.modeLabel);
+      setText("operator", booking.operator);
+      setText("date", new Date(`${booking.date}T12:00:00`).toLocaleDateString("en-IN", {weekday:"short",day:"numeric",month:"short",year:"numeric"}));
+      setText("timing", isHotelBooking
+        ? `${booking.depart} check-in · ${booking.arrive} check-out`
+        : `${booking.depart} – ${booking.arrive} · ${booking.duration}`);
+      setText("fare", booking.fareName);
+      setText("seats", booking.seats.join(", "));
+      setText("passengers", `${booking.passengers} ${isHotelBooking
+        ? booking.passengers === 1 ? "guest" : "guests"
+        : booking.passengers === 1 ? "passenger" : "passengers"}`);
+      setText("journey-type", isHotelBooking ? booking.duration : booking.journeyType === "round-trip" ? "Round trip" : "One way");
+      setText("distance", isHotelBooking
+        ? booking.checkOutDate
+        : booking.distance ? `${booking.distance.toLocaleString("en-IN")} km approx.` : "Route distance unavailable");
+      setText("total-passengers", isHotelBooking
+        ? `${booking.hotelNights} ${booking.hotelNights === 1 ? "night" : "nights"} · ${booking.hotelRooms} ${booking.hotelRooms === 1 ? "room" : "rooms"}`
+        : `${booking.passengers} ${booking.passengers === 1 ? "passenger" : "passengers"}`);
+      setText("fare-note", booking.fareNote || "");
+      setText("total", currency.format(booking.total));
+      if (isHotelBooking) {
+        setText("from-label", "Hotel");
+        setText("to-label", "City");
+        setText("mode-label", "Booking");
+        setText("date-label", "Check-in");
+        setText("timing-label", "Check-in / check-out");
+        setText("fare-label", "Room type");
+        setText("seats-label", "Rooms booked");
+        setText("passengers-label", "Guests");
+        setText("journey-label", "Stay length");
+        setText("distance-label", "Check-out");
+        setText("success-copy", "Your room is reserved in this demo. Here are all your stay details.");
+      }
+      document.querySelector("#confirmation-card").hidden = false;
+      document.querySelector("#missing-booking").hidden = true;
+    }
+  </script>
+</body>
+</html>

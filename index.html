@@ -1,0 +1,1665 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f0">
+  <title>roam — the journey is yours</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #17211d;
+      --muted: #78817b;
+      --paper: #f6f5f0;
+      --card: #fffefa;
+      --line: #e8e8df;
+      --green: #c8ef75;
+      --green-dark: #253522;
+      --orange: #f07d4f;
+      --shadow: 0 18px 55px rgba(34, 43, 35, .075);
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--paper); }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; text-decoration: none; }
+    body.is-loading { overflow: hidden; }
+    .page { width: min(1160px, calc(100% - 64px)); margin: 0 auto; }
+    body.is-loading .page { opacity: 0; transform: translateY(8px); }
+    .page { opacity: 1; transform: translateY(0); transition: opacity .55s ease, transform .55s ease; }
+    .loading-screen { position: fixed; z-index: 10000; inset: 0; display: grid; place-items: center; overflow: hidden; background: var(--paper); opacity: 1; visibility: visible; transition: opacity .55s ease, visibility .55s ease; }
+    .loading-screen:before, .loading-screen:after { position: absolute; width: min(62vw, 440px); aspect-ratio: 1; border-radius: 50%; background: #e6edda; content: ""; filter: blur(1px); }
+    .loading-screen:before { top: -25%; right: -15%; }
+    .loading-screen:after { bottom: -34%; left: -20%; width: min(55vw, 360px); background: #f0dfcf; }
+    .loading-screen.dismissed { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loading-content { position: relative; z-index: 1; width: min(100% - 38px, 360px); display: grid; justify-items: center; text-align: center; animation: loader-arrive .7s both; }
+    .loader-stage { position: relative; width: 226px; height: 226px; display: grid; place-items: center; }
+    .loader-orbit { position: absolute; display: grid; place-items: start center; border: 1px dashed #cbd6bd; border-radius: 50%; animation: loader-spin 8s linear infinite; }
+    .loader-orbit--outer { inset: 3px; animation-duration: 13s; }
+    .loader-orbit--middle { inset: 27px; border-style: dotted; border-color: #b8c89f; animation-duration: 9s; animation-direction: reverse; }
+    .loader-orbit--inner { inset: 52px; border-color: #d3ddc8; animation-duration: 6s; }
+    .loader-vehicle { position: relative; width: 46px; height: 46px; margin-top: -15px; display: grid; place-items: center; border: 2px solid rgba(255,255,255,.8); border-radius: 18px; color: var(--green-dark); background: linear-gradient(180deg, #fffefa 0%, #eef4e8 100%); box-shadow: 0 8px 18px #25352222; animation: loader-counter-spin 13s linear infinite; }
+    .loader-vehicle svg { position: relative; z-index: 1; width: 74%; height: 74%; }
+    .loader-orbit--outer .loader-vehicle { animation: loader-counter-spin 13s linear infinite, loader-bus-bounce .42s ease-in-out infinite; }
+    .loader-orbit--middle .loader-vehicle { width: 40px; height: 40px; color: #a75434; animation: loader-counter-spin 9s linear infinite, loader-train-rock .65s ease-in-out infinite; }
+    .loader-orbit--inner .loader-vehicle { width: 36px; height: 36px; color: #587144; animation: loader-counter-spin 6s linear infinite, loader-plane-flight .8s ease-in-out infinite; }
+    .loader-vehicle--bus:before, .loader-vehicle--bus:after { position: absolute; right: 28px; width: 17px; height: 3px; border-radius: 50%; background: repeating-linear-gradient(90deg,#66745f 0 2px,transparent 2px 5px); content: ""; opacity: 0; animation: loader-tyre-trail .52s ease-out infinite; }
+    .loader-vehicle--bus:before { top: 10px; }
+    .loader-vehicle--bus:after { top: 19px; animation-delay: .26s; }
+    .loader-vehicle--plane:before, .loader-vehicle--plane:after { position: absolute; right: 22px; width: 31px; height: 3px; border-radius: 4px; background: linear-gradient(90deg,transparent,#aab9a0 75%,#fff); content: ""; opacity: 0; transform: rotate(-24deg); animation: loader-plane-trail .9s ease-out infinite; }
+    .loader-vehicle--plane:after { width: 23px; right: 25px; top: 20px; animation-delay: .36s; }
+    .loader-vehicle--train:before, .loader-vehicle--train:after { position: absolute; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle,#fff 0 27%,#c2cbb9 38% 62%,transparent 72%); content: ""; opacity: 0; animation: loader-train-smoke 1.05s ease-out infinite; }
+    .loader-vehicle--train:before { top: -4px; }
+    .loader-vehicle--train:after { top: -8px; right: 12px; animation-delay: .48s; }
+    .loader-logo { position: relative; z-index: 2; width: 78px; height: 78px; display: grid; place-items: center; border: 5px solid #fffefa; border-radius: 26px; background: var(--green); box-shadow: 0 12px 30px #25352224; animation: loader-logo-pop-vibrate 1.35s ease-in-out infinite; }
+    .loader-logo svg { width: 42px; height: 42px; }
+    .loader-wordmark { margin-top: 2px; font: 800 29px Manrope,sans-serif; letter-spacing: -2px; }
+    .loader-copy { margin-top: 7px; color: #7d8778; font-size: 12px; }
+    .loader-progress { width: 170px; height: 4px; overflow: hidden; margin-top: 22px; border-radius: 10px; background: #e4e8dd; }
+    .loader-progress span { display: block; width: 45%; height: 100%; border-radius: inherit; background: var(--green-dark); animation: loader-progress 1.35s cubic-bezier(.4,0,.2,1) infinite; }
+    .loading-screen.dismissed .loading-content { transform: translateY(-8px); opacity: 0; transition: opacity .3s ease, transform .3s ease; }
+    .topbar { height: 82px; display: flex; align-items: center; justify-content: space-between; animation: drop-in .7s both; }
+    .brand { display: inline-flex; gap: 10px; align-items: center; font: 800 24px Manrope, sans-serif; letter-spacing: -1.6px; }
+    .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px; background: var(--green); transform: rotate(-8deg); animation: logo-loop 3.2s ease-in-out infinite; }
+    .brand-mark svg { transform: rotate(8deg); }
+    .nav { display: flex; gap: 36px; align-items: center; font-size: 13px; font-weight: 600; }
+    .nav a { transition: opacity .2s, transform .2s; }
+    .nav button { padding: 0; border: 0; color: inherit; background: transparent; cursor: pointer; font: inherit; transition: opacity .2s, transform .2s; }
+    .nav button:hover { opacity: .58; transform: translateY(-2px); }
+    .nav a:hover { opacity: .58; transform: translateY(-2px); }
+    .nav .my-trips { display: flex; align-items: center; gap: 9px; }
+    .avatar { width: 33px; height: 33px; display: grid; place-items: center; border: 1px solid #dfe3d8; border-radius: 50%; background: #e9eee1; font-size: 12px; }
+    .hero { display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 38px; padding: 46px 0 40px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: #677064; font-size: 11px; font-weight: 700; letter-spacing: 1.45px; text-transform: uppercase; }
+    .eyebrow:before { content: ""; display: block; width: 22px; height: 2px; border-radius: 4px; background: var(--orange); }
+    h1 { margin: 19px 0 13px; max-width: 530px; font: 600 clamp(42px, 5vw, 65px)/1.08 Manrope, sans-serif; letter-spacing: -3.8px; }
+    h1 span { color: #8d9f72; }
+    .hero-copy > p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.8; }
+    .hero-art { position: relative; height: 280px; overflow: hidden; border: 1px solid #e4e8dd; border-radius: 24px; background: #e9eddf; box-shadow: 0 16px 38px #26352212; isolation: isolate; }
+    .route-map { position: absolute; inset: 0; z-index: 0; background: #e9eddf; }
+    .map-route-chip { position: absolute; z-index: 500; top: 13px; left: 13px; max-width: calc(100% - 26px); padding: 9px 12px; overflow: hidden; border: 1px solid #fff; border-radius: 12px; background: rgba(255,254,250,.94); box-shadow: 0 5px 18px #2535221b; text-overflow: ellipsis; white-space: nowrap; backdrop-filter: blur(7px); }
+    .map-route-chip strong { display: block; overflow: hidden; font: 700 11px Manrope,sans-serif; text-overflow: ellipsis; }
+    .map-route-chip span { display: flex; align-items: center; gap: 6px; margin-top: 3px; color: #7e887b; font-size: 9px; }
+    .map-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #8fb64f; box-shadow: 0 0 0 3px #8fb64f28; animation: live-pulse 1.8s ease-in-out infinite; }
+    .map-status { position: absolute; z-index: 500; left: 13px; bottom: 25px; max-width: calc(100% - 26px); padding: 6px 9px; border: 1px solid #fff; border-radius: 8px; color: #576253; background: rgba(255,254,250,.92); box-shadow: 0 3px 12px #25352214; font-size: 9px; line-height: 1.4; backdrop-filter: blur(7px); }
+    .map-expand-button { position: absolute; z-index: 600; right: 13px; top: 13px; min-height: 35px; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid #fff; border-radius: 9px; color: #273526; background: rgba(255,254,250,.95); box-shadow: 0 4px 14px #25352218; cursor: pointer; font-size: 10px; font-weight: 800; transition: transform .2s, background .2s; }
+    .map-expand-button:hover { transform: translateY(-2px); background: white; }
+    .feature-overlay { position: fixed; z-index: 40; inset: 0; display: grid; place-items: center; padding: 22px; background: #17211d88; backdrop-filter: blur(7px); opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; }
+    .feature-overlay.open { opacity: 1; visibility: visible; }
+    .feature-panel { width: min(1040px,100%); max-height: min(860px,calc(100vh - 44px)); overflow: auto; border: 1px solid #e8e8df; border-radius: 22px; background: var(--paper); box-shadow: 0 28px 90px #10161055; transform: translateY(15px) scale(.985); transition: transform .28s cubic-bezier(.2,.8,.2,1); }
+    .map-panel { width: min(1600px,100%); height: min(940px,calc(100vh - 44px)); max-height: none; display: flex; flex-direction: column; }
+    .feature-overlay.open .feature-panel { transform: translateY(0) scale(1); }
+    .feature-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 22px; border-bottom: 1px solid var(--line); background: #fffefa; }
+    .feature-panel-title { min-width: 0; }
+    .feature-panel-title small { color: #849078; font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
+    .feature-panel-title h2 { margin: 4px 0 0; font: 800 19px Manrope,sans-serif; letter-spacing: -.5px; }
+    .feature-panel-title p { margin: 4px 0 0; color: #879084; font-size: 10px; }
+    .feature-panel-actions { display: flex; align-items: center; gap: 10px; }
+    .map-mode-tabs { display: flex; gap: 5px; padding: 4px; border-radius: 10px; background: #f0f2eb; }
+    .map-mode-tabs button { padding: 7px 10px; border: 0; border-radius: 7px; color: #717a70; background: transparent; cursor: pointer; font-size: 10px; font-weight: 800; transition: background .2s, color .2s; }
+    .map-mode-tabs button.active { color: white; background: var(--green-dark); }
+    .feature-close { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: white; cursor: pointer; font-size: 20px; transition: transform .2s, background .2s; }
+    .feature-close:hover { transform: rotate(90deg); background: #f3f5ed; }
+    .map-expanded-canvas { position: relative; flex: 1; height: auto; min-height: 340px; overflow: hidden; background: #e9eddf; }
+    .map-expanded-canvas > .route-map { position: absolute; inset: 0; }
+    .map-expanded-canvas .map-route-chip { top: 15px; left: 15px; max-width: min(380px,calc(100% - 30px)); padding: 11px 14px; }
+    .map-expanded-canvas .map-route-chip strong { font-size: 13px; }
+    .map-expanded-canvas .map-route-chip span { font-size: 10px; }
+    .map-expanded-canvas .map-status { left: 15px; bottom: 18px; max-width: min(520px,calc(100% - 30px)); padding: 9px 12px; font-size: 10px; }
+    .profile-panel { width: min(650px,100%); }
+    .profile-body { padding: 22px; }
+    .profile-identity { display: flex; align-items: center; gap: 15px; padding: 18px; border: 1px solid #e8e8df; border-radius: 14px; background: #fffefa; }
+    .profile-avatar-large { width: 58px; height: 58px; flex: 0 0 auto; display: grid; place-items: center; border: 4px solid #eaf0e1; border-radius: 50%; color: #fff; background: #33492f; font: 800 16px Manrope,sans-serif; }
+    .profile-identity h3 { margin: 0; font: 800 17px Manrope,sans-serif; }
+    .profile-identity p { margin: 5px 0 0; color: #879084; font-size: 11px; }
+    .profile-details { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-top: 15px; }
+    .profile-detail { min-width: 0; padding: 12px; border: 1px solid #e8e8df; border-radius: 11px; background: #fffefa; }
+    .profile-detail small { display: block; color: #929991; font-size: 9px; font-weight: 700; letter-spacing: .7px; text-transform: uppercase; }
+    .profile-detail strong { display: block; overflow-wrap: anywhere; margin-top: 5px; font-size: 11px; line-height: 1.5; }
+    .profile-empty { margin: 15px 0 0; padding: 13px; border: 1px dashed #dfe3d7; border-radius: 11px; color: #7e887b; font-size: 11px; line-height: 1.6; }
+    .profile-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 21px 0 10px; }
+    .profile-section-head h3 { margin: 0; font: 800 12px Manrope,sans-serif; }
+    .profile-button { min-height: 36px; padding: 0 12px; border: 1px solid #dfe4d8; border-radius: 8px; background: white; cursor: pointer; font-size: 10px; font-weight: 800; transition: background .2s, transform .2s; }
+    .profile-button:hover { transform: translateY(-1px); background: #f1f5e9; }
+    .profile-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; border: 1px solid #e8e8df; border-radius: 13px; background: #fffefa; animation: rise-in .25s both; }
+    .profile-form[hidden] { display: none; }
+    .profile-field { min-width: 0; }
+    .profile-field--wide { grid-column: 1 / -1; }
+    .profile-field label { display: block; margin-bottom: 6px; color: #788276; font-size: 9px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; }
+    .profile-field input, .profile-field select { width: 100%; min-height: 40px; padding: 9px 10px; border: 1px solid #e4e7df; border-radius: 8px; outline: 0; color: var(--ink); background: white; font: 500 11px "DM Sans",sans-serif; transition: border-color .2s, box-shadow .2s; }
+    .profile-field input:focus, .profile-field select:focus { border-color: #9ebd6b; box-shadow: 0 0 0 3px #c8ef753d; }
+    .profile-form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 2px; }
+    .profile-save { min-height: 39px; padding: 0 14px; border: 0; border-radius: 8px; color: #1c2719; background: var(--green); cursor: pointer; font-size: 10px; font-weight: 800; }
+    .profile-save:hover { background: #b9e65e; }
+    .profile-status { min-height: 16px; margin: 9px 1px 0; color: #526946; font-size: 10px; }
+    .profile-status.error { color: #c45637; }
+    .profile-latest { margin-top: 17px; padding: 14px; border-radius: 12px; background: #f0f4e9; }
+    .profile-latest small { display: block; color: #75816c; font-size: 9px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+    .profile-latest strong { display: block; margin-top: 6px; font-size: 12px; }
+    .profile-latest span { display: block; margin-top: 4px; color: #778177; font-size: 10px; line-height: 1.5; }
+    .profile-latest[hidden] { display: none; }
+    body.feature-open { overflow: hidden; }
+    @media (max-width: 620px) {
+      .nav { gap: 15px; font-size: 11px; }
+      .feature-overlay { padding: 10px; }
+      .feature-panel { max-height: calc(100vh - 20px); border-radius: 16px; }
+      .map-panel { height: calc(100vh - 20px); }
+      .feature-panel-head { align-items: flex-start; padding: 14px; }
+      .feature-panel-title h2 { font-size: 16px; }
+      .feature-panel-actions { gap: 6px; }
+      .map-mode-tabs { gap: 2px; }
+      .map-mode-tabs button { padding: 7px 6px; font-size: 9px; }
+      .map-expanded-canvas { min-height: 300px; }
+      .profile-body { padding: 15px; }
+      .profile-details { gap: 7px; }
+      .profile-detail { padding: 10px; }
+      .profile-form { gap: 9px; padding: 12px; }
+      .profile-identity { padding: 13px; }
+    }
+    .map-marker { display: grid; place-items: center; width: 28px; height: 36px; border: 2px solid white; border-radius: 50% 50% 50% 4px; color: white; box-shadow: 0 3px 11px #1c261b55; transform: rotate(-45deg); }
+    .map-marker span { font: 800 10px Manrope,sans-serif; transform: rotate(45deg); }
+    .map-marker-from { background: #f07d4f; }
+    .map-marker-to { background: #253522; }
+    .leaflet-container { font-family: "DM Sans",sans-serif; }
+    .leaflet-control-attribution { font-size: 8px !important; }
+    .leaflet-bar a { color: #253522 !important; }
+    .search-card { position: relative; z-index: 2; margin-top: 3px; padding: 24px; border: 1px solid rgba(233,233,224,.8); border-radius: 18px; background: var(--card); box-shadow: var(--shadow); animation: rise-in .7s .08s both; }
+    .search-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .search-head h2 { margin: 0; font: 700 16px Manrope, sans-serif; letter-spacing: -.4px; }
+    .trip-toggle { padding: 4px; display: flex; gap: 2px; border-radius: 10px; background: #f3f3ed; }
+    .trip-toggle button { padding: 7px 11px; border: 0; border-radius: 7px; color: #757d73; background: transparent; cursor: pointer; font-size: 11px; font-weight: 700; transition: .2s; }
+    .trip-toggle button.active { color: var(--ink); background: white; box-shadow: 0 2px 6px #25352212; }
+    .route-fields { display: grid; grid-template-columns: 1fr 38px 1fr; gap: 10px; align-items: end; }
+    .field label { display: block; margin: 0 0 8px 2px; color: #8b928a; font-size: 10px; font-weight: 700; letter-spacing: .9px; text-transform: uppercase; }
+    .input-wrap { height: 52px; display: flex; align-items: center; gap: 9px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; background: #fff; transition: border-color .2s, box-shadow .2s, transform .2s; }
+    .input-wrap:focus-within { border-color: #9ebd6b; box-shadow: 0 0 0 3px #c8ef753d; transform: translateY(-1px); }
+    .input-wrap input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 13px; font-weight: 600; }
+    .input-wrap input::placeholder { color: #a6aca5; font-weight: 400; }
+    .field-icon { color: #87918a; flex: 0 0 auto; }
+    .swap { width: 34px; height: 34px; margin-bottom: 9px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: white; cursor: pointer; transition: transform .3s, background .2s; }
+    .swap:hover { transform: rotate(180deg); background: var(--green); }
+    .search-bottom { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-top: 14px; align-items: end; }
+    .date-field input { color: #5d675e; }
+    .passenger-select { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: #5d675e; background: white; font-size: 12px; font-weight: 600; }
+    .passenger-control { display: flex; align-items: center; gap: 10px; }
+    .passenger-control button { width: 23px; height: 23px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: white; cursor: pointer; transition: background .2s, transform .2s; }
+    .passenger-control button:hover { transform: scale(1.09); background: var(--green); }
+    .search-button { height: 52px; min-width: 142px; padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 0; border-radius: 10px; color: #1c2719; background: var(--green); cursor: pointer; font-size: 12px; font-weight: 800; transition: transform .2s, box-shadow .2s, background .2s; }
+    .search-button:hover { transform: translateY(-2px); background: #b9e65e; box-shadow: 0 8px 18px #9dc85a45; }
+    .search-button:active { transform: scale(.98); }
+    .form-error { display: none; margin: 11px 2px 0; color: #c45637; font-size: 12px; }
+    .form-error.show { display: block; animation: rise-in .2s both; }
+    .results { padding: 40px 0 70px; }
+    .results-head { display: flex; align-items: end; justify-content: space-between; margin-bottom: 19px; }
+    .results-kicker { color: #8a9286; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
+    .results-head h2 { margin: 7px 0 0; font: 700 22px Manrope, sans-serif; letter-spacing: -.8px; }
+    .results-head h2 span { color: #9ba397; font-weight: 500; }
+    .distance-badge { display: flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 25px; color: #52604f; background: #fffefa; font-size: 11px; font-weight: 700; }
+    .distance-badge svg { color: #86a354; }
+    .mode-tabs { display: flex; gap: 9px; margin-bottom: 15px; }
+    .mode-tab { min-width: 115px; padding: 10px 15px; display: inline-flex; justify-content: center; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 9px; color: #727b71; background: #faf9f5; cursor: pointer; font-size: 12px; font-weight: 700; transition: all .25s; }
+    .mode-tab:hover { transform: translateY(-2px); border-color: #c6d6ae; }
+    .mode-tab.active { border-color: var(--green-dark); color: white; background: var(--green-dark); box-shadow: 0 6px 16px #25352220; }
+    .mode-tab--hotel { margin-left: 8px; }
+    .results-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+    .mode-tabs { margin-bottom: 0; }
+    .result-grid { display: block; }
+    .ticket-list { display: grid; gap: 11px; }
+    .hotel-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+    .ticket-list[hidden], .hotel-list[hidden], #fare-select[hidden] { display: none; }
+    .hotel-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: var(--card); animation: rise-in .4s both; transition: transform .22s, box-shadow .22s, border-color .22s; }
+    .hotel-card:hover { transform: translateY(-3px); border-color: #d0dbbf; box-shadow: 0 10px 24px #29372410; }
+    .hotel-heading { padding: 16px 16px 12px; }
+    .hotel-heading-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .hotel-heading h3 { margin: 0; font: 800 14px Manrope,sans-serif; letter-spacing: -.3px; }
+    .hotel-heading p { margin: 5px 0 0; color: #90988d; font-size: 10px; }
+    .hotel-rating { flex: 0 0 auto; padding: 5px 7px; border-radius: 7px; color: #526946; background: #f0f5e8; font-size: 9px; font-weight: 800; }
+    .room-list { display: grid; gap: 9px; padding: 0 10px 10px; }
+    .room-option { display: grid; grid-template-columns: 76px minmax(0,1fr); min-height: 76px; overflow: hidden; border: 1px solid #edeee7; border-radius: 10px; background: #fffefa; transition: border-color .2s, transform .2s; }
+    .room-option:hover { transform: translateY(-2px); border-color: #bdcfa5; }
+    .room-photo { width: 76px; height: 100%; min-height: 76px; object-fit: cover; background: #e9eddf; }
+    .room-option-body { min-width: 0; padding: 9px; display: flex; flex-direction: column; justify-content: space-between; gap: 5px; }
+    .room-option-body strong { display: block; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .room-option-body small { display: block; margin-top: 3px; color: #929991; font-size: 8px; line-height: 1.4; }
+    .room-option-bottom { display: flex; align-items: center; justify-content: space-between; gap: 5px; }
+    .room-option-bottom b { font: 800 11px Manrope,sans-serif; white-space: nowrap; }
+    .room-option-bottom b small { display: inline; font: 500 8px "DM Sans",sans-serif; }
+    .room-book-button { flex: 0 0 auto; padding: 6px 8px; border: 0; border-radius: 6px; color: white; background: #253522; cursor: pointer; font-size: 8px; font-weight: 700; transition: background .2s, transform .2s; }
+    .room-book-button:hover { transform: translateY(-1px); background: #40563a; }
+    .hotel-empty { grid-column: 1 / -1; padding: 35px; border: 1px dashed #dfe3d7; border-radius: 13px; color: #889184; text-align: center; font-size: 12px; }
+    .ticket-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 185px; gap: 15px; padding: 19px 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--card); transition: transform .22s, box-shadow .22s, border-color .22s; animation: rise-in .4s both; }
+    .ticket-card:hover { transform: translateY(-3px); border-color: #d0dbbf; box-shadow: 0 10px 24px #29372410; }
+    .ticket-main { display: flex; gap: 14px; align-items: center; min-width: 0; }
+    .operator-icon { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 11px; color: #58664f; background: #edf2e4; }
+    .operator-info { min-width: 0; }
+    .operator-info strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 13px Manrope, sans-serif; }
+    .operator-info span { display: block; margin-top: 5px; color: #929991; font-size: 10px; }
+    .journey-timing { display: grid; grid-template-columns: 1fr minmax(50px, 1fr) 1fr; gap: 9px; align-items: center; margin-left: auto; min-width: 195px; text-align: center; }
+    .journey-timing strong { display: block; font: 700 14px Manrope, sans-serif; }
+    .journey-timing small { display: block; margin-top: 4px; color: #9aa198; font-size: 9px; }
+    .journey-line { position: relative; height: 1px; background: #dce1d7; }
+    .journey-line:before, .journey-line:after { content: ""; position: absolute; top: -2px; width: 5px; height: 5px; border-radius: 50%; background: #9db677; }
+    .journey-line:before { left: 0; } .journey-line:after { right: 0; }
+    .journey-line span { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); padding: 0 5px; color: #969d94; background: var(--card); font-size: 9px; white-space: nowrap; }
+    .ticket-side { display: flex; align-items: center; justify-content: flex-end; gap: 15px; padding-left: 14px; border-left: 1px solid #eeeee7; }
+    .price strong { display: block; font: 800 17px Manrope, sans-serif; letter-spacing: -.5px; }
+    .price small { display: block; margin-top: 4px; color: #9aa198; font-size: 9px; text-align: right; }
+    .book-button { padding: 10px 13px; border: 0; border-radius: 8px; color: white; background: #253522; cursor: pointer; font-size: 10px; font-weight: 700; transition: transform .2s, background .2s; white-space: nowrap; }
+    .book-button:hover { transform: translateY(-2px); background: #40563a; }
+    .custom-select { position: relative; z-index: 5; min-width: 230px; }
+    .select-trigger { min-height: 43px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 12px; background: #fffefa; cursor: pointer; text-align: left; transition: border-color .2s, box-shadow .2s, transform .2s; }
+    .select-trigger:hover, .custom-select.open .select-trigger { border-color: #b7ca9d; box-shadow: 0 4px 14px #2535220c; }
+    .filter-trigger-copy { display: grid; gap: 2px; }
+    .filter-trigger-copy small { color: #929991; font-size: 9px; font-weight: 600; }
+    .filter-trigger-copy strong { font-size: 11px; font-weight: 800; }
+    .select-chevron { flex: 0 0 auto; transition: transform .24s; }
+    .custom-select.open .select-chevron { transform: rotate(180deg); }
+    .select-menu { position: absolute; z-index: 10; top: calc(100% + 8px); left: 0; width: 100%; max-height: 300px; overflow-y: auto; padding: 7px; border: 1px solid #e8e9df; border-radius: 15px; background: #fffefa; box-shadow: 0 16px 38px #1e2b1c20; opacity: 0; visibility: hidden; transform: translateY(-7px) scale(.98); transform-origin: top; transition: opacity .2s, transform .2s, visibility .2s; }
+    .custom-select.open .select-menu { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+    .select-option { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 0; border-radius: 9px; background: transparent; cursor: pointer; text-align: left; transition: background .16s, transform .16s; }
+    .select-option:hover { transform: translateX(2px); background: #f3f6eb; }
+    .select-option.active { background: #edf4df; }
+    .select-option strong { display: block; font-size: 11px; }
+    .select-option small { display: block; margin-top: 3px; color: #899286; font-size: 9px; }
+    .select-option .fare-price { flex: 0 0 auto; font-size: 11px; font-weight: 800; }
+    .city-field { position: relative; }
+    .city-menu { position: absolute; z-index: 8; top: calc(100% + 9px); left: 0; right: 0; max-height: 340px; overflow-y: auto; padding: 7px; border: 1px solid #e8e9df; border-radius: 15px; background: #fffefa; box-shadow: 0 18px 42px #1e2b1c20; opacity: 0; visibility: hidden; transform: translateY(-7px) scale(.985); transform-origin: top; transition: opacity .2s, transform .2s, visibility .2s; }
+    .city-field.open .city-menu { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+    .city-group-label { padding: 10px 10px 5px; color: #8b9488; font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .city-option { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 0; border-radius: 9px; background: transparent; cursor: pointer; text-align: left; transition: background .16s, transform .16s; }
+    .city-option:hover, .city-option.active { transform: translateX(2px); background: #f1f5e9; }
+    .city-option strong { font-size: 11px; }
+    .city-option span { color: #929991; font-size: 9px; }
+    .city-empty { padding: 16px 10px; color: #879084; font-size: 11px; text-align: center; }
+    .empty-state { padding: 42px 25px; border: 1px dashed #dfe3d7; border-radius: 13px; color: #889184; text-align: center; }
+    .empty-state strong { display: block; margin: 8px 0 5px; color: var(--ink); font-size: 13px; }
+    .empty-state p { margin: 0; font-size: 11px; }
+    .toast { position: fixed; z-index: 10; right: 24px; bottom: 24px; max-width: calc(100vw - 32px); padding: 15px 19px; border: 1px solid #dbe8ca; border-radius: 12px; color: #243421; background: #f4fae9; box-shadow: var(--shadow); font-size: 12px; font-weight: 600; opacity: 0; transform: translateY(14px); pointer-events: none; transition: .3s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .booking-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(26,34,28,.48); backdrop-filter: blur(5px); opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; }
+    .booking-backdrop.open { opacity: 1; visibility: visible; }
+    .booking-dialog { width: min(460px, 100%); max-height: min(680px, calc(100vh - 40px)); overflow: auto; padding: 24px; border: 1px solid #eeeee7; border-radius: 18px; background: var(--card); box-shadow: 0 25px 80px #10161044; transform: translateY(12px) scale(.98); transition: transform .25s; }
+    .booking-backdrop.open .booking-dialog { transform: translateY(0) scale(1); }
+    .hotel-dialog { width: min(760px,100%); max-height: min(820px,calc(100vh - 40px)); padding: 21px; }
+    .hotel-dialog .dialog-top { margin-bottom: 15px; }
+    .hotel-room-showcase { display: grid; grid-template-columns: minmax(0,1.08fr) minmax(250px,.92fr); gap: 20px; align-items: stretch; }
+    .hotel-gallery { min-width: 0; }
+    .hotel-gallery-main { position: relative; height: 260px; overflow: hidden; border-radius: 14px; background: #e9eddf; }
+    .hotel-gallery-main img { width: 100%; height: 100%; display: block; object-fit: cover; animation: hotel-photo-in .35s ease both; }
+    .hotel-gallery-label { position: absolute; right: 12px; bottom: 12px; padding: 7px 10px; border: 1px solid #ffffff70; border-radius: 20px; color: white; background: #17211d9c; backdrop-filter: blur(7px); font-size: 9px; font-weight: 700; }
+    .hotel-gallery-thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 9px; padding: 2px 1px 5px; scrollbar-width: thin; }
+    .hotel-gallery-thumb { position: relative; width: 73px; height: 54px; flex: 0 0 auto; overflow: hidden; padding: 0; border: 2px solid transparent; border-radius: 8px; background: #e9eddf; cursor: pointer; transition: border-color .2s, transform .2s, opacity .2s; }
+    .hotel-gallery-thumb:hover { transform: translateY(-2px); }
+    .hotel-gallery-thumb.active { border-color: #527444; box-shadow: 0 0 0 2px #c8ef75; }
+    .hotel-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .hotel-room-details { min-width: 0; padding: 4px 2px; }
+    .hotel-room-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .hotel-room-details h3 { margin: 0; font: 800 19px/1.2 Manrope,sans-serif; letter-spacing: -.6px; }
+    .hotel-room-details .hotel-property-line { margin: 6px 0 0; color: #879084; font-size: 10px; line-height: 1.5; }
+    .hotel-rating--detail { padding: 6px 8px; }
+    .hotel-room-description { margin: 15px 0 12px; color: #677267; font-size: 11px; line-height: 1.7; }
+    .hotel-specs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+    .hotel-spec { min-width: 0; padding: 9px 8px; border: 1px solid #edeee7; border-radius: 9px; background: #fffefa; }
+    .hotel-spec span { display: block; color: #929991; font-size: 8px; }
+    .hotel-spec strong { display: block; overflow: hidden; margin-top: 4px; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .hotel-amenities { margin-top: 14px; }
+    .hotel-amenities > strong { display: block; font-size: 10px; }
+    .hotel-amenity-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .hotel-amenity { padding: 6px 8px; border-radius: 20px; color: #53694a; background: #eff4e8; font-size: 8px; font-weight: 700; }
+    .hotel-booking-facts { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; margin-top: 16px; }
+    .hotel-fact { padding: 11px; border-radius: 10px; background: #f4f6ef; }
+    .hotel-fact span { display: block; color: #879084; font-size: 9px; }
+    .hotel-fact strong { display: block; margin-top: 5px; font-size: 11px; }
+    .hotel-policy { margin: 10px 0 0; color: #879084; font-size: 9px; line-height: 1.5; }
+    .hotel-nights { display: flex; align-items: center; justify-content: space-between; margin-top: 13px; color: #5d675e; font-size: 11px; font-weight: 700; }
+    .hotel-nights-control { display: flex; align-items: center; gap: 12px; }
+    .hotel-nights-control button { width: 27px; height: 27px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: white; cursor: pointer; transition: background .2s, transform .2s; }
+    .hotel-nights-control button:hover { transform: scale(1.08); background: var(--green); }
+    .hotel-total { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 13px; border-top: 1px solid #edeee7; }
+    .hotel-total span { color: #7d8778; font-size: 10px; }
+    .hotel-total strong { font: 800 18px Manrope,sans-serif; }
+    @keyframes hotel-photo-in { from { opacity: .65; transform: scale(1.025); } to { opacity: 1; transform: scale(1); } }
+    .dialog-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .dialog-eyebrow { color: #849078; font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; }
+    .dialog-top h2 { margin: 6px 0 0; font: 700 20px Manrope, sans-serif; letter-spacing: -.7px; }
+    .dialog-close { width: 31px; height: 31px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: white; cursor: pointer; transition: transform .2s, background .2s; }
+    .dialog-close:hover { transform: rotate(90deg); background: #f3f5ed; }
+    .booking-summary { display: flex; justify-content: space-between; gap: 10px; margin: 17px 0; padding: 12px; border-radius: 10px; background: #f4f6ef; }
+    .booking-summary span { display: block; color: #879084; font-size: 9px; }
+    .booking-summary strong { display: block; margin-top: 4px; font-size: 11px; }
+    .booking-summary .summary-price { text-align: right; }
+    .seat-heading { display: flex; justify-content: space-between; align-items: center; margin: 19px 0 12px; font-size: 11px; font-weight: 800; }
+    .seat-heading span { color: #9aa198; font-size: 9px; font-weight: 500; }
+    .seat-legend { display: flex; gap: 14px; margin-bottom: 12px; color: #7e887b; font-size: 9px; }
+    .seat-legend span { display: inline-flex; gap: 5px; align-items: center; }
+    .seat-legend i { width: 10px; height: 10px; border: 1px solid #dfe4d9; border-radius: 3px; background: white; }
+    .seat-legend .legend-selected { border-color: #263822; background: #263822; }
+    .seat-legend .legend-unavailable { border-color: #eee; background: #eee; }
+    .seat-cabin { max-height: 370px; overflow: auto; padding: 12px; border: 1px solid #edeee7; border-radius: 18px 18px 13px 13px; background: linear-gradient(180deg,#f3f5ef,#fafaf6 18%); scrollbar-color: #cbd6bd transparent; scrollbar-width: thin; }
+    .cabin-front { width: 92px; margin: 0 auto 12px; padding: 6px 8px; border: 1px solid #e5e9df; border-radius: 7px 7px 18px 18px; color: #8a9387; background: #fffefa; font-size: 8px; font-weight: 800; letter-spacing: 1px; text-align: center; }
+    .seat-grid { --seat-columns: 5; display: grid; grid-template-columns: repeat(var(--seat-columns), minmax(28px, 1fr)); gap: 5px; width: min(100%, 350px); margin: 0 auto; padding: 3px; }
+    .seat-aisle { min-height: 34px; }
+    .seat { position: relative; min-width: 0; min-height: 34px; padding: 2px; border: 1px solid #dfe4d9; border-radius: 7px 7px 9px 9px; color: #53614c; background: white; cursor: pointer; font-size: 8px; font-weight: 700; box-shadow: inset 0 -3px 0 #edf0e9; transition: transform .2s, background .2s, border .2s, box-shadow .2s; }
+    .seat:before { content: ""; position: absolute; top: 3px; left: 50%; width: 48%; height: 3px; border-radius: 5px; background: #e8ede1; transform: translateX(-50%); }
+    .seat:hover:not(:disabled) { transform: translateY(-2px); border-color: #a9bf87; }
+    .seat.selected, .seat[aria-pressed="true"] { border-color: #1c321a; color: white; background: linear-gradient(145deg,#3d6032,#253f22 72%); box-shadow: inset 0 -3px 0 #172b16, 0 4px 11px #253f2240; animation: seat-pick .36s cubic-bezier(.2,.8,.25,1.3); }
+    .seat.selected:before, .seat[aria-pressed="true"]:before { background: #c8ef75; }
+    @keyframes seat-pick { 0% { transform: scale(.82); box-shadow: 0 0 0 0 #8eae6a00; } 55% { transform: scale(1.12) translateY(-2px); box-shadow: 0 0 0 6px #8eae6a35; } 100% { transform: scale(1) translateY(0); } }
+    .seat:disabled { border-color: #eee; color: #b7bcb4; background: #eee; cursor: not-allowed; text-decoration: line-through; box-shadow: none; }
+    .seat:disabled:before { background: #ddd; }
+    .seat-error { min-height: 14px; margin: 8px 0 0; color: #c45637; font-size: 10px; }
+    .confirm-booking { width: 100%; min-height: 46px; margin-top: 12px; border: 0; border-radius: 9px; color: #1c2719; background: var(--green); cursor: pointer; font-size: 12px; font-weight: 800; transition: transform .2s, background .2s; }
+    .confirm-booking:hover { transform: translateY(-2px); background: #b9e65e; }
+    footer { display: flex; justify-content: space-between; gap: 12px; padding: 20px 0 26px; border-top: 1px solid #e7e8df; color: #939b91; font-size: 10px; }
+    @keyframes rise-in { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes drop-in { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes loader-arrive { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes loader-spin { to { transform: rotate(360deg); } }
+    @keyframes loader-counter-spin { to { transform: rotate(-360deg); } }
+    @keyframes loader-logo-pop-vibrate { 0%,16%,32%,48%,64%,100% { transform: translateX(0) scale(1) rotate(0); } 5% { transform: translateX(-2px) scale(1.07) rotate(-4deg); } 10% { transform: translateX(2px) scale(1.1) rotate(4deg); } 21% { transform: translateX(0) scale(1.04) rotate(0); } 25% { transform: translateX(-1px) scale(1.04) rotate(-2deg); } 29% { transform: translateX(1px) scale(1.04) rotate(2deg); } 40% { transform: translateX(0) scale(1) rotate(0); } 52% { transform: translateX(-1px) scale(1.03) rotate(-2deg); } 56% { transform: translateX(1px) scale(1.03) rotate(2deg); } 60% { transform: translateX(0) scale(1) rotate(0); } }
+    @keyframes loader-bus-bounce { 0%,100% { translate: 0 0; } 50% { translate: 0 -2px; } }
+    @keyframes loader-train-rock { 0%,100% { translate: 0 0; rotate: -2deg; } 50% { translate: 0 -1px; rotate: 2deg; } }
+    @keyframes loader-plane-flight { 0%,100% { translate: 0 0; rotate: -3deg; } 50% { translate: 2px -3px; rotate: 4deg; } }
+    @keyframes loader-tyre-trail { 0% { opacity: 0; transform: translateX(7px) scaleX(.35); } 25% { opacity: .7; } 100% { opacity: 0; transform: translateX(-9px) scaleX(1.15); } }
+    @keyframes loader-plane-trail { 0% { opacity: 0; transform: translate(7px,2px) rotate(-24deg) scaleX(.25); } 30% { opacity: .72; } 100% { opacity: 0; transform: translate(-11px,-2px) rotate(-24deg) scaleX(1.2); } }
+    @keyframes loader-train-smoke { 0% { opacity: 0; transform: translate(2px,5px) scale(.45); } 24% { opacity: .75; } 100% { opacity: 0; transform: translate(-8px,-13px) scale(1.35); } }
+    @keyframes loader-progress { 0% { transform: translateX(-120%); } 100% { transform: translateX(245%); } }
+    @keyframes live-pulse { 0%,100% { box-shadow: 0 0 0 3px #8fb64f28; } 50% { box-shadow: 0 0 0 6px #8fb64f15; } }
+    .route-dash { stroke-dasharray: 8 8; animation: route-flow 12s linear infinite; }
+    @keyframes route-flow { to { stroke-dashoffset: -160; } }
+    @keyframes logo-loop { 0%, 100% { transform: rotate(-8deg) translateY(0); } 25% { transform: rotate(4deg) translateY(-2px); } 50% { transform: rotate(9deg) translateY(0); } 75% { transform: rotate(-2deg) translateY(-1px); } }
+    @media (max-width: 850px) {
+      .hero { grid-template-columns: 1fr .8fr; gap: 20px; }
+      .hero-art { height: 245px; }
+    }
+    @media (max-width: 620px) {
+      .page { width: min(100% - 32px, 480px); }
+      .topbar { height: 68px; }
+      .nav { gap: 15px; font-size: 11px; }
+      .nav > a:first-child { display: none; }
+      .brand { font-size: 21px; }
+      .hero { display: flex; flex-direction: column; align-items: stretch; gap: 20px; padding: 25px 0 27px; }
+      h1 { max-width: 420px; margin-top: 13px; font-size: 48px; letter-spacing: -2.8px; }
+      .hero-copy > p { font-size: 13px; }
+      .hero-art { height: 215px; }
+      .search-card { padding: 18px 15px; }
+      .search-head h2 { font-size: 14px; }
+      .route-fields { grid-template-columns: 1fr 30px 1fr; gap: 5px; }
+      .input-wrap { height: 48px; gap: 6px; padding: 0 8px; }
+      .input-wrap input { font-size: 11px; }
+      .field-icon { width: 14px; height: 14px; }
+      .swap { width: 29px; height: 29px; margin-bottom: 9px; }
+      .search-bottom { grid-template-columns: 1fr 1fr; }
+      .search-button { grid-column: 1 / -1; width: 100%; }
+      .passenger-select { height: 48px; padding: 0 8px; font-size: 10px; }
+      .passenger-control { gap: 6px; }
+      .results { padding: 30px 0 45px; }
+      .results-head { align-items: center; gap: 8px; }
+      .results-head h2 { font-size: 18px; }
+      .distance-badge { padding: 8px; font-size: 10px; }
+      .mode-tabs { gap: 6px; }
+      .mode-tab { flex: 1; min-width: 0; padding: 10px 6px; font-size: 11px; }
+      .mode-tab--hotel { margin-left: 0; }
+      .results-toolbar { align-items: stretch; flex-direction: column; }
+      .custom-select { width: 100%; }
+      .hotel-list { grid-template-columns: 1fr; }
+      .hotel-card { display: grid; grid-template-columns: minmax(130px,.7fr) 1fr; align-items: start; }
+      .hotel-heading { padding: 15px 11px; }
+      .room-list { padding: 10px; }
+      .room-option { grid-template-columns: 64px minmax(0,1fr); }
+      .room-photo { width: 64px; }
+      .hotel-dialog { padding: 17px 14px; }
+      .hotel-room-showcase { grid-template-columns: 1fr; gap: 13px; }
+      .hotel-gallery-main { height: 205px; }
+      .hotel-room-details h3 { font-size: 17px; }
+      .hotel-booking-facts { grid-template-columns: 1fr 1fr; }
+      .hotel-specs { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .ticket-card { grid-template-columns: 1fr; gap: 14px; padding: 15px; }
+      .ticket-main { gap: 10px; flex-wrap: wrap; }
+      .journey-timing { min-width: 150px; flex: 1; gap: 6px; }
+      .operator-info { max-width: 105px; }
+      .ticket-side { justify-content: space-between; padding: 12px 0 0; border-left: 0; border-top: 1px solid #eeeee7; }
+      .price small { text-align: left; }
+      .booking-dialog { padding: 18px 14px; }
+      .seat-cabin { padding: 10px 6px; }
+      footer { font-size: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .loading-screen { transition-duration: .12s !important; }
+    }
+  </style>
+</head>
+<body class="is-loading">
+  <div class="loading-screen" id="loading-screen" role="status" aria-label="Loading Roam">
+    <div class="loading-content">
+      <div class="loader-stage" aria-hidden="true">
+        <div class="loader-orbit loader-orbit--outer">
+          <span class="loader-vehicle loader-vehicle--bus">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 15.5h18l-1.6-6.1a2 2 0 0 0-1.9-1.5H6.5a2 2 0 0 0-1.9 1.5L3 15.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M5 15.5v2m14-2v2M7.5 11h9M8 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </span>
+        </div>
+        <div class="loader-orbit loader-orbit--middle">
+          <span class="loader-vehicle loader-vehicle--train">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 3 3.5 21h17L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m8 13 4-2 4 2m-4-2V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </div>
+        <div class="loader-orbit loader-orbit--inner">
+          <span class="loader-vehicle loader-vehicle--plane">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="m21 3-7.5 18-3-7.5L3 10.5 21 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m10.5 13.5 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+        </div>
+        <span class="loader-logo">
+          <svg viewBox="0 0 48 48" fill="none"><path d="m6 37 12-25 6 12 5-8 13 21H6Z" stroke="#253522" stroke-width="3.3" stroke-linejoin="round"/><circle cx="36" cy="12" r="3" fill="#F07D4F"/></svg>
+        </span>
+      </div>
+      <div class="loader-wordmark">roam</div>
+      <div class="loader-copy">Getting your next journey ready</div>
+      <div class="loader-progress" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="roam home">
+        <span class="brand-mark"><svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 14.5 8.2 4l2.2 5 1.8-3.4L17 14.5H3Z" stroke="#253522" stroke-width="1.7" stroke-linejoin="round"/><circle cx="14.8" cy="4.3" r="1.3" fill="#F07D4F"/></svg></span>
+        roam
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <button type="button" id="explore-trigger" aria-haspopup="dialog">Explore</button>
+        <a href="#journeys">How it works</a>
+        <button type="button" class="my-trips" id="profile-trigger" aria-haspopup="dialog"><span class="avatar" id="nav-avatar">R</span> My trips</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="headline">
+        <div class="hero-copy">
+          <div class="eyebrow">Good journeys start here</div>
+          <h1 id="headline">A little further.<br><span>A lot more you.</span></h1>
+          <p>Compare ways to get there, find your kind of seat, and make the journey part of the story.</p>
+        </div>
+        <div class="hero-art" aria-label="Interactive map route preview">
+          <div class="route-map" id="route-map" role="application" aria-label="Interactive map showing the selected journey"></div>
+          <button type="button" class="map-expand-button" id="map-expand-trigger" aria-haspopup="dialog">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4M3 7l5-4m9 4-5-4M3 13l5 4m9-4-5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Explore map
+          </button>
+          <div class="map-route-chip">
+            <strong id="map-route-title">Mumbai → Goa</strong>
+            <span><i class="map-live-dot" aria-hidden="true"></i>Live map · route preview</span>
+          </div>
+          <div class="map-status" id="map-status" role="status">Loading interactive map…</div>
+        </div>
+      </section>
+
+      <section class="search-card" aria-label="Find a journey">
+        <div class="search-head">
+          <h2>Where are we going?</h2>
+          <div class="trip-toggle" aria-label="Journey type">
+            <button type="button" class="active" data-trip="one-way">One way</button>
+            <button type="button" data-trip="round-trip">Round trip</button>
+          </div>
+        </div>
+        <form id="search-form">
+          <div class="route-fields">
+            <div class="field city-field" data-city-field="from">
+              <label for="from">From</label>
+              <div class="input-wrap">
+                <svg class="field-icon" width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="5.8" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2" fill="currentColor"/></svg>
+                <input id="from" placeholder="Search Indian city or state" value="Mumbai" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="from-city-menu" required>
+              </div>
+              <div class="city-menu" id="from-city-menu" role="listbox" aria-label="Indian cities for departure"></div>
+            </div>
+            <button class="swap" id="swap" type="button" aria-label="Swap departure and destination">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 6h11m0 0-3-3m3 3-3 3M16 14H5m0 0 3 3m-3-3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="field city-field" data-city-field="to">
+              <label for="to">To</label>
+              <div class="input-wrap">
+                <svg class="field-icon" width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M16 8.5c0 4.2-6 9-6 9s-6-4.8-6-9a6 6 0 1 1 12 0Z" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="8.5" r="2" stroke="currentColor" stroke-width="1.5"/></svg>
+                <input id="to" placeholder="Search Indian city or state" value="Goa" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="to-city-menu" required>
+              </div>
+              <div class="city-menu" id="to-city-menu" role="listbox" aria-label="Indian cities for destination"></div>
+            </div>
+          </div>
+          <div class="search-bottom">
+            <div class="field date-field">
+              <label for="date">Departure</label>
+              <div class="input-wrap">
+                <svg class="field-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3.3" y="5" width="13.4" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 3.5v3M13.5 3.5v3M3.5 8.5h13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                <input id="date" type="date" aria-label="Departure date" required>
+              </div>
+            </div>
+            <div class="field">
+              <label>Travelers</label>
+              <div class="passenger-select">
+                <span>Passengers</span>
+                <span class="passenger-control"><button id="minus" type="button" aria-label="Remove passenger">−</button><span id="passenger-count">1</span><button id="plus" type="button" aria-label="Add passenger">+</button></span>
+              </div>
+            </div>
+            <button class="search-button" type="submit">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.7" cy="8.7" r="5.7" stroke="currentColor" stroke-width="1.7"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              Find my way
+            </button>
+          </div>
+          <p id="form-error" class="form-error" role="alert"></p>
+        </form>
+      </section>
+
+      <section class="results" id="journeys" aria-live="polite">
+        <div class="results-head">
+          <div>
+            <div class="results-kicker">Your next adventure</div>
+            <h2><span id="route-title">Mumbai → Goa</span></h2>
+          </div>
+          <div class="distance-badge" title="Straight-line distance between city centers">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 14 7 6l3 5 2-3 5 6H3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4 16h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            <span id="distance">306 km</span> approx.
+          </div>
+        </div>
+        <div class="results-toolbar">
+          <div class="mode-tabs" role="tablist" aria-label="Choose travel mode">
+            <button type="button" class="mode-tab active" role="tab" aria-selected="true" data-mode="bus"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="3" width="14" height="13" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 10h14M6 16l-1 2m9-2 1 2m-8-9h2m3 0h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Bus</button>
+            <button type="button" class="mode-tab" role="tab" aria-selected="false" data-mode="train"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="4" y="2.5" width="12" height="14" rx="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 10h12M7 16.5l-2 2m8-2 2 2m-6-10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Train</button>
+            <button type="button" class="mode-tab" role="tab" aria-selected="false" data-mode="plane"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m18 3-5.3 14-3-5.8L4 8.3 18 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m9.7 11.2 3.8-4" stroke="currentColor" stroke-width="1.5"/></svg>Plane</button>
+            <button type="button" class="mode-tab mode-tab--hotel" role="tab" aria-selected="false" data-category="hotel"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 17V6.5L10 3l7 3.5V17M3 9h14M7 17v-4h6v4M7 7h.01M10 7h.01M13 7h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Hotels</button>
+          </div>
+          <div class="custom-select" id="fare-select">
+            <button type="button" class="select-trigger" id="fare-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="filter-trigger-copy"><small>FILTER BY SEAT TYPE</small><strong id="fare-selected-label">Standard</strong></span>
+              <svg class="select-chevron" width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7 5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="select-menu" id="fare-list" role="listbox" aria-label="Filter by seat type"></div>
+          </div>
+        </div>
+        <div class="result-grid">
+          <div class="ticket-list" id="ticket-list"></div>
+          <div class="hotel-list" id="hotel-list" hidden></div>
+        </div>
+      </section>
+    </main>
+    <footer><span>© 2026 roam. Take the long way.</span><span>Made for the love of getting there ↗</span></footer>
+  </div>
+  <div class="feature-overlay" id="map-overlay" aria-hidden="true">
+    <section class="feature-panel map-panel" role="dialog" aria-modal="true" aria-labelledby="map-dialog-title">
+      <header class="feature-panel-head">
+        <div class="feature-panel-title">
+          <small>Explore your route</small>
+          <h2 id="map-dialog-title">Interactive route map</h2>
+          <p id="map-expanded-route-title">Mumbai → Goa</p>
+        </div>
+        <div class="feature-panel-actions">
+          <div class="map-mode-tabs" role="group" aria-label="Route mode">
+            <button type="button" class="active" data-map-mode="bus" aria-pressed="true">Bus</button>
+            <button type="button" data-map-mode="train" aria-pressed="false">Train</button>
+            <button type="button" data-map-mode="plane" aria-pressed="false">Plane</button>
+          </div>
+          <button type="button" class="feature-close" id="map-close" aria-label="Close map">×</button>
+        </div>
+      </header>
+      <div class="map-expanded-canvas" id="map-expanded-canvas">
+        <div class="map-route-chip" aria-hidden="true">
+          <strong id="map-expanded-chip-title">Mumbai → Goa</strong>
+          <span><i class="map-live-dot"></i>Route preview · not live GPS</span>
+        </div>
+        <div class="map-status" id="map-expanded-status" role="status">Loading interactive map…</div>
+      </div>
+    </section>
+  </div>
+  <div class="feature-overlay" id="profile-overlay" aria-hidden="true">
+    <section class="feature-panel profile-panel" role="dialog" aria-modal="true" aria-labelledby="profile-dialog-title">
+      <header class="feature-panel-head">
+        <div class="feature-panel-title">
+          <small>Your roam account</small>
+          <h2 id="profile-dialog-title">My trips & traveler profile</h2>
+          <p>Your details stay in this browser and can be edited any time.</p>
+        </div>
+        <button type="button" class="feature-close" id="profile-close" aria-label="Close profile">×</button>
+      </header>
+      <div class="profile-body">
+        <div class="profile-identity">
+          <span class="profile-avatar-large" id="profile-avatar">R</span>
+          <div><h3 id="profile-name">Traveler</h3><p id="profile-email">Add your details to complete your traveler profile.</p></div>
+        </div>
+        <div class="profile-details" id="profile-details"></div>
+        <p class="profile-empty" id="profile-empty">Add your legal name and contact details so your traveler profile is ready for future bookings.</p>
+        <div class="profile-section-head">
+          <h3>Traveler details</h3>
+          <button type="button" class="profile-button" id="profile-edit">Edit profile</button>
+        </div>
+        <form class="profile-form" id="profile-form" hidden>
+          <div class="profile-field profile-field--wide">
+            <label for="profile-full-name">Full name as on ID *</label>
+            <input id="profile-full-name" name="fullName" autocomplete="name" required maxlength="100">
+          </div>
+          <div class="profile-field">
+            <label for="profile-email-input">Email address *</label>
+            <input id="profile-email-input" name="email" type="email" autocomplete="email" required maxlength="150">
+          </div>
+          <div class="profile-field">
+            <label for="profile-phone-input">Mobile number *</label>
+            <input id="profile-phone-input" name="phone" type="tel" autocomplete="tel" inputmode="tel" required maxlength="20">
+          </div>
+          <div class="profile-field">
+            <label for="profile-dob">Date of birth</label>
+            <input id="profile-dob" name="dateOfBirth" type="date" autocomplete="bday">
+          </div>
+          <div class="profile-field">
+            <label for="profile-gender">Gender (optional)</label>
+            <select id="profile-gender" name="gender">
+              <option value="">Prefer not to say</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Non-binary">Non-binary</option>
+              <option value="Self-describe">Self-describe</option>
+            </select>
+          </div>
+          <div class="profile-field profile-field--wide">
+            <label for="profile-address">Address (optional)</label>
+            <input id="profile-address" name="address" autocomplete="street-address" maxlength="180">
+          </div>
+          <div class="profile-field">
+            <label for="profile-emergency-name">Emergency contact (optional)</label>
+            <input id="profile-emergency-name" name="emergencyName" autocomplete="off" maxlength="100">
+          </div>
+          <div class="profile-field">
+            <label for="profile-emergency-phone">Emergency phone</label>
+            <input id="profile-emergency-phone" name="emergencyPhone" type="tel" inputmode="tel" maxlength="20">
+          </div>
+          <div class="profile-form-actions">
+            <button type="button" class="profile-button" id="profile-cancel">Cancel</button>
+            <button type="submit" class="profile-save">Save details</button>
+          </div>
+        </form>
+        <p class="profile-status" id="profile-status" role="status" aria-live="polite"></p>
+        <div class="profile-latest" id="profile-latest" hidden>
+          <small>Latest booking on this device</small>
+          <strong id="profile-latest-title"></strong>
+          <span id="profile-latest-details"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="booking-backdrop" id="booking-backdrop" aria-hidden="true">
+    <section class="booking-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+      <div class="dialog-top">
+        <div><div class="dialog-eyebrow">One more little detail</div><h2 id="dialog-title">Choose your seats</h2></div>
+        <button type="button" class="dialog-close" id="dialog-close" aria-label="Close seat selection">×</button>
+      </div>
+      <div class="booking-summary">
+        <div><span>Your journey</span><strong id="booking-route"></strong></div>
+        <div><span>Ride & seat</span><strong id="booking-class"></strong></div>
+        <div class="summary-price"><span>Total</span><strong id="booking-total"></strong></div>
+      </div>
+      <div class="seat-heading">Available seats <span id="seat-count-label"></span></div>
+      <div class="seat-legend"><span><i></i> Available</span><span><i class="legend-selected"></i> Yours</span><span><i class="legend-unavailable"></i> Taken</span></div>
+      <div class="seat-cabin">
+        <div class="cabin-front" id="cabin-front">FRONT</div>
+        <div class="seat-grid" id="seat-grid" aria-label="Top view seat layout"></div>
+      </div>
+      <p class="seat-error" id="seat-error" role="alert"></p>
+      <button type="button" class="confirm-booking" id="confirm-booking">Confirm booking</button>
+    </section>
+  </div>
+  <div class="booking-backdrop" id="hotel-booking-backdrop" aria-hidden="true">
+    <section class="booking-dialog hotel-dialog" role="dialog" aria-modal="true" aria-labelledby="hotel-dialog-title">
+      <div class="dialog-top">
+        <div><div class="dialog-eyebrow">Make it a lovely stay</div><h2 id="hotel-dialog-title">Room details & booking</h2></div>
+        <button type="button" class="dialog-close" id="hotel-dialog-close" aria-label="Close hotel booking">×</button>
+      </div>
+      <div class="hotel-room-showcase">
+        <div class="hotel-gallery">
+          <div class="hotel-gallery-main">
+            <img id="hotel-preview-image" alt="">
+            <span class="hotel-gallery-label" id="hotel-gallery-label"></span>
+          </div>
+          <div class="hotel-gallery-thumbs" id="hotel-gallery-thumbs" aria-label="Other room photos"></div>
+        </div>
+        <div class="hotel-room-details">
+          <div class="hotel-room-title-row">
+            <div><h3 id="hotel-preview-name"></h3><p class="hotel-property-line" id="hotel-preview-detail"></p></div>
+            <span class="hotel-rating hotel-rating--detail" id="hotel-preview-rating"></span>
+          </div>
+          <p class="hotel-room-description" id="hotel-preview-description"></p>
+          <div class="hotel-specs">
+            <div class="hotel-spec"><span>BED TYPE</span><strong id="hotel-preview-bed"></strong></div>
+            <div class="hotel-spec"><span>ROOM SIZE</span><strong id="hotel-preview-size"></strong></div>
+            <div class="hotel-spec"><span>IDEAL FOR</span><strong id="hotel-preview-occupancy"></strong></div>
+          </div>
+          <div class="hotel-amenities"><strong>Room highlights</strong><div class="hotel-amenity-list" id="hotel-preview-amenities"></div></div>
+        </div>
+      </div>
+      <div class="hotel-booking-facts">
+        <div class="hotel-fact"><span>Property & city</span><strong id="hotel-preview-property"></strong></div>
+        <div class="hotel-fact"><span>Guests</span><strong id="hotel-preview-guests"></strong></div>
+        <div class="hotel-fact"><span>Check-in</span><strong id="hotel-preview-checkin"></strong></div>
+        <div class="hotel-fact"><span>Check-out</span><strong id="hotel-preview-checkout"></strong></div>
+      </div>
+      <p class="hotel-policy" id="hotel-preview-policy"></p>
+      <div class="hotel-nights">
+        <span>Number of nights</span>
+        <span class="hotel-nights-control"><button type="button" id="hotel-night-minus" aria-label="Remove one night">−</button><strong id="hotel-night-count">1</strong><button type="button" id="hotel-night-plus" aria-label="Add one night">+</button></span>
+      </div>
+      <div class="hotel-nights">
+        <span>Rooms</span>
+        <span class="hotel-nights-control"><button type="button" id="hotel-room-minus" aria-label="Remove one room">−</button><strong id="hotel-room-count">1</strong><button type="button" id="hotel-room-plus" aria-label="Add one room">+</button></span>
+      </div>
+      <div class="hotel-total"><span id="hotel-total-label">Total stay price</span><strong id="hotel-total"></strong></div>
+      <p class="seat-error" id="hotel-booking-error" role="alert"></p>
+      <button type="button" class="confirm-booking" id="confirm-hotel-booking">Confirm room booking</button>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const locations = [
+      {city:"Visakhapatnam",state:"Andhra Pradesh",lat:17.6868,lon:83.2185},{city:"Vijayawada",state:"Andhra Pradesh",lat:16.5062,lon:80.648},{city:"Amaravati",state:"Andhra Pradesh",lat:16.5745,lon:80.358},{city:"Tirupati",state:"Andhra Pradesh",lat:13.6288,lon:79.4192},{city:"Guntur",state:"Andhra Pradesh",lat:16.3067,lon:80.4365},{city:"Kurnool",state:"Andhra Pradesh",lat:15.8281,lon:78.0373},
+      {city:"Itanagar",state:"Arunachal Pradesh",lat:27.0844,lon:93.6053},{city:"Naharlagun",state:"Arunachal Pradesh",lat:27.1047,lon:93.6952},{city:"Pasighat",state:"Arunachal Pradesh",lat:28.0669,lon:95.3268},
+      {city:"Guwahati",state:"Assam",lat:26.1445,lon:91.7362},{city:"Dispur",state:"Assam",lat:26.1433,lon:91.7898},{city:"Silchar",state:"Assam",lat:24.8333,lon:92.7789},{city:"Dibrugarh",state:"Assam",lat:27.4728,lon:94.912},{city:"Jorhat",state:"Assam",lat:26.7465,lon:94.2026},{city:"Tezpur",state:"Assam",lat:26.6528,lon:92.7926},
+      {city:"Patna",state:"Bihar",lat:25.5941,lon:85.1376},{city:"Gaya",state:"Bihar",lat:24.7914,lon:85.0002},{city:"Muzaffarpur",state:"Bihar",lat:26.1209,lon:85.3647},{city:"Bhagalpur",state:"Bihar",lat:25.2425,lon:86.9842},
+      {city:"Raipur",state:"Chhattisgarh",lat:21.2514,lon:81.6296},{city:"Bilaspur",state:"Chhattisgarh",lat:22.0797,lon:82.1409},{city:"Jagdalpur",state:"Chhattisgarh",lat:19.0748,lon:82.008},
+      {city:"Panaji",state:"Goa",lat:15.4909,lon:73.8278},{city:"Goa",state:"Goa",lat:15.2993,lon:74.124},{city:"Margao",state:"Goa",lat:15.2832,lon:73.9862},{city:"Vasco da Gama",state:"Goa",lat:15.386,lon:73.8149},
+      {city:"Ahmedabad",state:"Gujarat",lat:23.0225,lon:72.5714},{city:"Surat",state:"Gujarat",lat:21.1702,lon:72.8311},{city:"Vadodara",state:"Gujarat",lat:22.3072,lon:73.1812},{city:"Rajkot",state:"Gujarat",lat:22.3039,lon:70.8022},{city:"Bhuj",state:"Gujarat",lat:23.241999,lon:69.6669},{city:"Gandhinagar",state:"Gujarat",lat:23.2156,lon:72.6369},
+      {city:"Gurugram",state:"Haryana",lat:28.4595,lon:77.0266},{city:"Faridabad",state:"Haryana",lat:28.4089,lon:77.3178},{city:"Panipat",state:"Haryana",lat:29.3909,lon:76.9635},{city:"Hisar",state:"Haryana",lat:29.1492,lon:75.7217},
+      {city:"Shimla",state:"Himachal Pradesh",lat:31.1048,lon:77.1734},{city:"Dharamshala",state:"Himachal Pradesh",lat:32.219,lon:76.3234},{city:"Manali",state:"Himachal Pradesh",lat:32.2396,lon:77.1887},{city:"Mandi",state:"Himachal Pradesh",lat:31.708,lon:76.932},
+      {city:"Ranchi",state:"Jharkhand",lat:23.3441,lon:85.3096},{city:"Jamshedpur",state:"Jharkhand",lat:22.8046,lon:86.2029},{city:"Dhanbad",state:"Jharkhand",lat:23.7957,lon:86.4304},{city:"Bokaro",state:"Jharkhand",lat:23.6693,lon:86.1511},
+      {city:"Bengaluru",state:"Karnataka",lat:12.9716,lon:77.5946},{city:"Mysuru",state:"Karnataka",lat:12.2958,lon:76.6394},{city:"Mangaluru",state:"Karnataka",lat:12.9141,lon:74.856},{city:"Hubballi",state:"Karnataka",lat:15.3647,lon:75.124},{city:"Belagavi",state:"Karnataka",lat:15.8497,lon:74.4977},{city:"Hampi",state:"Karnataka",lat:15.335,lon:76.46},
+      {city:"Kochi",state:"Kerala",lat:9.9312,lon:76.2673},{city:"Thiruvananthapuram",state:"Kerala",lat:8.5241,lon:76.9366},{city:"Kozhikode",state:"Kerala",lat:11.2588,lon:75.7804},{city:"Thrissur",state:"Kerala",lat:10.5276,lon:76.2144},{city:"Kollam",state:"Kerala",lat:8.8932,lon:76.6141},
+      {city:"Bhopal",state:"Madhya Pradesh",lat:23.2599,lon:77.4126},{city:"Indore",state:"Madhya Pradesh",lat:22.7196,lon:75.8577},{city:"Jabalpur",state:"Madhya Pradesh",lat:23.1815,lon:79.9864},{city:"Gwalior",state:"Madhya Pradesh",lat:26.2183,lon:78.1828},{city:"Ujjain",state:"Madhya Pradesh",lat:23.1793,lon:75.7849},
+      {city:"Mumbai",state:"Maharashtra",lat:19.076,lon:72.8777},{city:"Pune",state:"Maharashtra",lat:18.5204,lon:73.8567},{city:"Nagpur",state:"Maharashtra",lat:21.1458,lon:79.0882},{city:"Nashik",state:"Maharashtra",lat:19.9975,lon:73.7898},{city:"Chhatrapati Sambhajinagar",state:"Maharashtra",lat:19.8762,lon:75.3433},{city:"Kolhapur",state:"Maharashtra",lat:16.705,lon:74.2433},{city:"Solapur",state:"Maharashtra",lat:17.6599,lon:75.9064},{city:"Thane",state:"Maharashtra",lat:19.2183,lon:72.9781},
+      {city:"Imphal",state:"Manipur",lat:24.817,lon:93.9368},{city:"Thoubal",state:"Manipur",lat:24.6387,lon:93.9994},{city:"Bishnupur",state:"Manipur",lat:24.6297,lon:93.7676},
+      {city:"Shillong",state:"Meghalaya",lat:25.5788,lon:91.8933},{city:"Tura",state:"Meghalaya",lat:25.5142,lon:90.2024},{city:"Cherrapunji",state:"Meghalaya",lat:25.2702,lon:91.7323},
+      {city:"Aizawl",state:"Mizoram",lat:23.7271,lon:92.7176},{city:"Lunglei",state:"Mizoram",lat:22.8871,lon:92.7661},{city:"Champhai",state:"Mizoram",lat:23.4744,lon:93.3284},
+      {city:"Kohima",state:"Nagaland",lat:25.6751,lon:94.1086},{city:"Dimapur",state:"Nagaland",lat:25.8629,lon:93.7537},{city:"Mokokchung",state:"Nagaland",lat:26.322,lon:94.5184},
+      {city:"Bhubaneswar",state:"Odisha",lat:20.2961,lon:85.8245},{city:"Cuttack",state:"Odisha",lat:20.4625,lon:85.883},{city:"Puri",state:"Odisha",lat:19.8135,lon:85.8312},{city:"Rourkela",state:"Odisha",lat:22.2604,lon:84.8536},{city:"Sambalpur",state:"Odisha",lat:21.4669,lon:83.9812},
+      {city:"Amritsar",state:"Punjab",lat:31.634,lon:74.8723},{city:"Ludhiana",state:"Punjab",lat:30.901,lon:75.8573},{city:"Jalandhar",state:"Punjab",lat:31.326,lon:75.5762},{city:"Patiala",state:"Punjab",lat:30.3398,lon:76.3869},{city:"Bathinda",state:"Punjab",lat:30.211,lon:74.9455},
+      {city:"Jaipur",state:"Rajasthan",lat:26.9124,lon:75.7873},{city:"Udaipur",state:"Rajasthan",lat:24.5854,lon:73.7125},{city:"Jodhpur",state:"Rajasthan",lat:26.2389,lon:73.0243},{city:"Kota",state:"Rajasthan",lat:25.2138,lon:75.8648},{city:"Ajmer",state:"Rajasthan",lat:26.4499,lon:74.6399},{city:"Jaisalmer",state:"Rajasthan",lat:26.9157,lon:70.9083},
+      {city:"Gangtok",state:"Sikkim",lat:27.3389,lon:88.6065},{city:"Namchi",state:"Sikkim",lat:27.1667,lon:88.3667},{city:"Pelling",state:"Sikkim",lat:27.305,lon:88.238},
+      {city:"Chennai",state:"Tamil Nadu",lat:13.0827,lon:80.2707},{city:"Coimbatore",state:"Tamil Nadu",lat:11.0168,lon:76.9558},{city:"Madurai",state:"Tamil Nadu",lat:9.9252,lon:78.1198},{city:"Tiruchirappalli",state:"Tamil Nadu",lat:10.7905,lon:78.7047},{city:"Salem",state:"Tamil Nadu",lat:11.6643,lon:78.146},{city:"Tirunelveli",state:"Tamil Nadu",lat:8.7139,lon:77.7567},{city:"Ooty",state:"Tamil Nadu",lat:11.4102,lon:76.695},
+      {city:"Hyderabad",state:"Telangana",lat:17.385,lon:78.4867},{city:"Warangal",state:"Telangana",lat:17.9689,lon:79.5941},{city:"Nizamabad",state:"Telangana",lat:18.6725,lon:78.0941},{city:"Karimnagar",state:"Telangana",lat:18.4386,lon:79.1288},
+      {city:"Agartala",state:"Tripura",lat:23.8315,lon:91.2868},{city:"Udaipur, Tripura",state:"Tripura",lat:23.5333,lon:91.4833},{city:"Dharmanagar",state:"Tripura",lat:24.3667,lon:92.1667},
+      {city:"Lucknow",state:"Uttar Pradesh",lat:26.8467,lon:80.9462},{city:"Varanasi",state:"Uttar Pradesh",lat:25.3176,lon:82.9739},{city:"Agra",state:"Uttar Pradesh",lat:27.1767,lon:78.0081},{city:"Kanpur",state:"Uttar Pradesh",lat:26.4499,lon:80.3319},{city:"Prayagraj",state:"Uttar Pradesh",lat:25.4358,lon:81.8463},{city:"Ayodhya",state:"Uttar Pradesh",lat:26.7922,lon:82.1998},{city:"Noida",state:"Uttar Pradesh",lat:28.5355,lon:77.391},
+      {city:"Dehradun",state:"Uttarakhand",lat:30.3165,lon:78.0322},{city:"Rishikesh",state:"Uttarakhand",lat:30.0869,lon:78.2676},{city:"Haridwar",state:"Uttarakhand",lat:29.9457,lon:78.1642},{city:"Nainital",state:"Uttarakhand",lat:29.3919,lon:79.4542},
+      {city:"Kolkata",state:"West Bengal",lat:22.5726,lon:88.3639},{city:"Darjeeling",state:"West Bengal",lat:27.036,lon:88.2627},{city:"Siliguri",state:"West Bengal",lat:26.7271,lon:88.3953},{city:"Durgapur",state:"West Bengal",lat:23.5204,lon:87.3119},{city:"Howrah",state:"West Bengal",lat:22.5958,lon:88.2636},
+      {city:"Port Blair",state:"Andaman and Nicobar Islands",lat:11.6234,lon:92.7265},{city:"Havelock Island",state:"Andaman and Nicobar Islands",lat:12.0167,lon:92.9833},
+      {city:"Chandigarh",state:"Chandigarh",lat:30.7333,lon:76.7794},
+      {city:"Daman",state:"Dadra and Nagar Haveli and Daman and Diu",lat:20.3974,lon:72.8328},{city:"Silvassa",state:"Dadra and Nagar Haveli and Daman and Diu",lat:20.2766,lon:73.0083},{city:"Diu",state:"Dadra and Nagar Haveli and Daman and Diu",lat:20.7144,lon:70.9874},
+      {city:"Delhi",state:"Delhi",lat:28.6139,lon:77.209},
+      {city:"Srinagar",state:"Jammu and Kashmir",lat:34.0837,lon:74.7973},{city:"Jammu",state:"Jammu and Kashmir",lat:32.7266,lon:74.857},{city:"Anantnag",state:"Jammu and Kashmir",lat:33.7311,lon:75.1487},{city:"Gulmarg",state:"Jammu and Kashmir",lat:34.0484,lon:74.3805},
+      {city:"Leh",state:"Ladakh",lat:34.1526,lon:77.5771},{city:"Kargil",state:"Ladakh",lat:34.5539,lon:76.1349},
+      {city:"Kavaratti",state:"Lakshadweep",lat:10.5667,lon:72.6417},{city:"Agatti",state:"Lakshadweep",lat:10.856,lon:72.193},
+      {city:"Puducherry",state:"Puducherry",lat:11.9416,lon:79.8083},{city:"Karaikal",state:"Puducherry",lat:10.9254,lon:79.838},{city:"Yanam",state:"Puducherry",lat:16.7333,lon:82.2167}
+    ];
+    const cities = Object.fromEntries(locations.map(location => [location.city, [location.lat, location.lon]]));
+    const inventory = {
+      bus: {
+        title: "Pick your kind of ride", subtitle: "A seat for every kind of traveler.",
+        fares: [{name:"Standard", note:"Non-AC · Recliner", price:650},{name:"Comfort",note:"AC · Extra legroom",price:1050},{name:"Sleeper",note:"AC · Lie-flat berth",price:1450}],
+        trips: [
+          {operator:"IntrCity SmartBus", meta:"AC sleeper · Water bottle included", depart:"18:30", arrive:"06:00", duration:"11h 30m", multiplier:1, icon:"bus"},
+          {operator:"VRL Travels", meta:"AC sleeper · Charging outlets", depart:"19:45", arrive:"07:30", duration:"11h 45m", multiplier:1.08, icon:"bus"},
+          {operator:"Neeta Travels", meta:"AC seater · Blanket included", depart:"20:15", arrive:"08:30", duration:"12h 15m", multiplier:.92, icon:"bus"}
+        ]
+      },
+      train: {
+        title: "Choose your carriage", subtitle: "Stretch out, watch the scenery roll by.",
+        fares: [{name:"Sleeper Class",note:"Non-AC · Berth",price:780},{name:"AC 3 Tier",note:"Air-conditioned · Berth",price:1450},{name:"AC 2 Tier",note:"More space · Berth",price:2450}],
+        trips: [
+          {operator:"Konkan Railway",meta:"Sleeper · Scenic coastal route",depart:"11:40",arrive:"23:20",duration:"11h 40m",multiplier:1,icon:"train"},
+          {operator:"Tejas Express",meta:"AC chair car · On-board meals",depart:"05:50",arrive:"17:10",duration:"11h 20m",multiplier:1.2,icon:"train"},
+          {operator:"Konkan Kanya Express",meta:"AC & sleeper berths · Daily",depart:"22:00",arrive:"10:15",duration:"12h 15m",multiplier:1.08,icon:"train"}
+        ]
+      },
+      plane: {
+        title: "Find your perfect seat", subtitle: "Quick hop or a little extra comfort.",
+        fares: [{name:"Economy",note:"Standard seat · Cabin bag",price:4200},{name:"Premium Economy",note:"Extra legroom · Priority boarding",price:7200},{name:"Business",note:"Premium seat · Lounge access",price:14800}],
+        trips: [
+          {operator:"IndiGo",meta:"Nonstop · Cabin bag included",depart:"06:10",arrive:"07:25",duration:"1h 15m",multiplier:1,icon:"plane"},
+          {operator:"Air India",meta:"Nonstop · Complimentary meal",depart:"11:35",arrive:"12:50",duration:"1h 15m",multiplier:1.15,icon:"plane"},
+          {operator:"Akasa Air",meta:"Nonstop · Flexible fare options",depart:"16:20",arrive:"17:40",duration:"1h 20m",multiplier:.94,icon:"plane"}
+        ]
+      }
+    };
+    const hotelInventory = [
+      {
+        name:"The Fern Courtyard", area:"Quiet neighbourhood · breakfast included", rating:"4.8",
+        rooms:[
+          {name:"Garden Queen",detail:"Queen bed · garden view · breakfast",price:3200,image:"https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=960&h=720&q=85",bed:"Queen bed",size:"28 m²",occupancy:"2 guests",description:"A calm, light-filled room with garden views and a comfortable queen bed, ideal for a restful city break.",amenities:["Garden view","Breakfast","Free Wi-Fi"],policy:"Free cancellation up to 24 hours before check-in. Check-in from 2:00 PM; check-out by 11:00 AM."},
+          {name:"Courtyard Suite",detail:"King bed · sitting area · free Wi-Fi",price:5800,image:"https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=960&h=720&q=85",bed:"King bed",size:"42 m²",occupancy:"2 guests",description:"Settle into a spacious suite with a separate sitting area, warm natural finishes, and a quiet courtyard outlook.",amenities:["Sitting area","Free Wi-Fi","Rain shower"],policy:"Free cancellation up to 24 hours before check-in. Check-in from 2:00 PM; check-out by 11:00 AM."}
+        ]
+      },
+      {
+        name:"Saffron House", area:"City centre · easy access to local sights", rating:"4.6",
+        rooms:[
+          {name:"Classic Double",detail:"Double bed · air-conditioned · Wi-Fi",price:2500,image:"https://images.unsplash.com/photo-1616594039964-ae9021a400a0?auto=format&fit=crop&w=960&h=720&q=85",bed:"Double bed",size:"24 m²",occupancy:"2 guests",description:"A comfortable, air-conditioned retreat with thoughtful essentials, a relaxed palette, and easy access to the city.",amenities:["Air-conditioning","Free Wi-Fi","City access"],policy:"Free cancellation up to 24 hours before check-in. Check-in from 2:00 PM; check-out by 11:00 AM."},
+          {name:"Family Studio",detail:"Two double beds · lounge area",price:4200,image:"https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=960&h=720&q=85",bed:"2 double beds",size:"38 m²",occupancy:"4 guests",description:"More room for everyone, with two double beds and a welcoming lounge space to unwind together.",amenities:["Lounge area","2 double beds","Free Wi-Fi"],policy:"Free cancellation up to 24 hours before check-in. Check-in from 2:00 PM; check-out by 11:00 AM."}
+        ]
+      },
+      {
+        name:"The Marigold Retreat", area:"Garden stay · pool and on-site dining", rating:"4.9",
+        rooms:[
+          {name:"Poolside King",detail:"King bed · balcony · pool access",price:6800,image:"https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=960&h=720&q=85",bed:"King bed",size:"36 m²",occupancy:"2 guests",description:"Wake up to garden and pool views from a private balcony in this airy king room at the retreat.",amenities:["Private balcony","Pool access","King bed"],policy:"Free cancellation up to 48 hours before check-in. Check-in from 2:00 PM; check-out by 11:00 AM."},
+          {name:"Private Villa",detail:"Private patio · king bed · lounge",price:9800,image:"https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=960&h=720&q=85",bed:"King bed",size:"58 m²",occupancy:"2 guests",description:"A secluded villa with its own patio, generous lounge space, and room to slow down in private.",amenities:["Private patio","Separate lounge","King bed"],policy:"Free cancellation up to 48 hours before check-in. Check-in from 2:00 PM; check-out by 11:00 AM."}
+        ]
+      }
+    ];
+    const symbols = {
+      bus: '<svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="3" width="14" height="13" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M3 10h14M6 16l-1 2m9-2 1 2m-8-9h2m3 0h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      train: '<svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="4" y="2.5" width="12" height="14" rx="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 10h12M7 16.5l-2 2m8-2 2 2m-6-10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+      plane: '<svg width="19" height="19" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m18 3-5.3 14-3-5.8L4 8.3 18 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m9.7 11.2 3.8-4" stroke="currentColor" stroke-width="1.5"/></svg>'
+    };
+    let activeMode = "bus";
+    let activeCategory = "transport";
+    let selectedFare = 0;
+    let passengers = 1;
+    let activeTrip = 0;
+    let selectedSeats = [];
+    let hotelOptions = [];
+    let activeHotel = null;
+    let hotelNights = 1;
+    let hotelRooms = 1;
+    let toastTimer;
+    let routeMap = null;
+    let routeMapMarkers = [];
+    let routeMapLine = null;
+    let routeRequest = null;
+    let routeTimeout = null;
+    let displayedMapRoute = "";
+    let mapReturnFocus = null;
+    let profileReturnFocus = null;
+    let travelerProfile = null;
+    const fromInput = document.querySelector("#from");
+    const toInput = document.querySelector("#to");
+    const dateInput = document.querySelector("#date");
+    const today = new Date();
+    dateInput.min = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    dateInput.value = dateInput.min;
+
+    const inr = new Intl.NumberFormat("en-IN", {style:"currency",currency:"INR",maximumFractionDigits:0});
+    function money(value) { return inr.format(Math.round(value)); }
+    function distanceBetween(from, to) {
+      const a = cities[from], b = cities[to];
+      if (!a || !b) return null;
+      const rad = n => n * Math.PI / 180;
+      const dLat = rad(b[0] - a[0]), dLon = rad(b[1] - a[1]);
+      const hav = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLon / 2) ** 2;
+      return Math.round(6371 * 2 * Math.atan2(Math.sqrt(hav), Math.sqrt(1 - hav)));
+    }
+    function setMapStatus(message) {
+      document.querySelector("#map-status").textContent = message;
+      const expandedStatus = document.querySelector("#map-expanded-status");
+      if (expandedStatus) expandedStatus.textContent = message;
+    }
+    function getLocation(city) {
+      return locations.find(location => location.city === city);
+    }
+    function updateRouteMap() {
+      const mapElement = document.querySelector("#route-map");
+      const mapTitle = document.querySelector("#map-route-title");
+      mapTitle.textContent = `${fromInput.value || "Choose a city"} → ${toInput.value || "Choose a city"}`;
+      document.querySelector("#map-expanded-route-title").textContent = mapTitle.textContent;
+      document.querySelector("#map-expanded-chip-title").textContent = mapTitle.textContent;
+      if (!window.L) {
+        setMapStatus("Interactive map unavailable. Check your internet connection.");
+        return;
+      }
+      if (!routeMap) {
+        routeMap = L.map(mapElement, {scrollWheelZoom:false, zoomControl:true, attributionControl:true}).setView([22.5, 79], 4);
+        const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom:19,
+          attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+        }).addTo(routeMap);
+        tiles.on("tileerror", () => setMapStatus("Map tiles could not load. Check your internet connection."));
+        setTimeout(() => routeMap.invalidateSize(), 0);
+      }
+      const from = getLocation(fromInput.value);
+      const to = getLocation(toInput.value);
+      if (!from || !to) {
+        if (routeTimeout) clearTimeout(routeTimeout);
+        if (routeRequest) routeRequest.abort();
+        displayedMapRoute = "";
+        routeMapMarkers.forEach(marker => routeMap.removeLayer(marker));
+        routeMapMarkers = [];
+        if (routeMapLine) routeMap.removeLayer(routeMapLine);
+        routeMapLine = null;
+        setMapStatus("Choose Indian cities to preview your route.");
+        return;
+      }
+      const routeKey = `${from.city}|${to.city}|${activeMode}`;
+      if (routeKey === displayedMapRoute) return;
+      displayedMapRoute = routeKey;
+      if (routeTimeout) clearTimeout(routeTimeout);
+      if (routeRequest) routeRequest.abort();
+      routeRequest = null;
+      routeMapMarkers.forEach(marker => routeMap.removeLayer(marker));
+      routeMapMarkers = [];
+      if (routeMapLine) routeMap.removeLayer(routeMapLine);
+      const fromPoint = [from.lat, from.lon];
+      const toPoint = [to.lat, to.lon];
+      const pointBounds = L.latLngBounds(fromPoint, toPoint);
+      const markerFor = (location, kind, label) => L.marker([location.lat, location.lon], {
+        title:`${label}: ${location.city}, ${location.state}`,
+        icon:L.divIcon({
+          className:"",
+          html:`<span class="map-marker map-marker-${kind}"><span>${label === "From" ? "A" : "B"}</span></span>`,
+          iconSize:[28,36],
+          iconAnchor:[14,34]
+        })
+      }).bindPopup(`<strong>${label}: ${escapeHtml(location.city)}</strong><br>${escapeHtml(location.state)}`);
+      routeMapMarkers = [markerFor(from,"from","From"),markerFor(to,"to","To")];
+      routeMapMarkers.forEach(marker => marker.addTo(routeMap));
+      routeMap.fitBounds(pointBounds, {padding:[42,42], maxZoom:7, animate:true});
+      routeMapLine = L.polyline([fromPoint,toPoint], {
+        color:activeMode === "bus" ? "#8ba86a" : "#f07d4f",
+        weight:4,
+        opacity:.9,
+        dashArray:activeMode === "bus" ? "1 0" : "8 8",
+        lineCap:"round"
+      }).addTo(routeMap);
+      if (activeMode !== "bus") {
+        setMapStatus(`${activeMode === "train" ? "Rail" : "Flight"} path preview · live vehicle GPS is not connected.`);
+        return;
+      }
+      setMapStatus("Finding road route…");
+      const controller = new AbortController();
+      routeRequest = controller;
+      routeTimeout = setTimeout(() => {
+        if (routeRequest === controller) controller.abort();
+      }, 10000);
+      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=full&geometries=geojson`;
+      fetch(routeUrl, {signal:controller.signal})
+        .then(response => {
+          if (!response.ok) throw new Error(`Route service returned ${response.status}.`);
+          return response.json();
+        })
+        .then(result => {
+          clearTimeout(routeTimeout);
+          if (controller.signal.aborted || displayedMapRoute !== routeKey) return;
+          if (result.code !== "Ok" || !result.routes?.[0]?.geometry?.coordinates?.length) {
+            throw new Error("No road route is available for this city pair.");
+          }
+          const route = result.routes[0];
+          routeMap.removeLayer(routeMapLine);
+          routeMapLine = L.geoJSON(route.geometry, {
+            style:{color:"#8ba86a",weight:4,opacity:.92}
+          }).addTo(routeMap);
+          routeMap.fitBounds(routeMapLine.getBounds(), {padding:[42,42], maxZoom:9, animate:true});
+          const routeKm = Math.round(route.distance / 1000).toLocaleString("en-IN");
+          setMapStatus(`${routeKm} km road route · live vehicle GPS is not connected.`);
+        })
+        .catch(error => {
+          clearTimeout(routeTimeout);
+          if (displayedMapRoute !== routeKey || (error.name === "AbortError" && routeRequest !== controller)) return;
+          routeRequest = null;
+          setMapStatus("Road routing unavailable. Showing a direct route preview instead.");
+        });
+    }
+    function openExploreMap() {
+      const overlay = document.querySelector("#map-overlay");
+      const mapElement = document.querySelector("#route-map");
+      const canvas = document.querySelector("#map-expanded-canvas");
+      mapReturnFocus = document.activeElement;
+      updateRouteMap();
+      canvas.append(mapElement);
+      overlay.classList.add("open");
+      overlay.setAttribute("aria-hidden", "false");
+      document.body.classList.add("feature-open");
+      document.querySelector("#map-close").focus();
+      requestAnimationFrame(() => {
+        if (routeMap) routeMap.invalidateSize({pan:false});
+      });
+    }
+    function closeExploreMap() {
+      const overlay = document.querySelector("#map-overlay");
+      if (!overlay.classList.contains("open")) return;
+      const heroArt = document.querySelector(".hero-art");
+      heroArt.insertBefore(document.querySelector("#route-map"), heroArt.firstChild);
+      overlay.classList.remove("open");
+      overlay.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("feature-open");
+      requestAnimationFrame(() => {
+        if (routeMap) routeMap.invalidateSize({pan:false});
+        if (mapReturnFocus) mapReturnFocus.focus();
+        mapReturnFocus = null;
+      });
+    }
+    function profileInitials(name) {
+      return name.trim().split(/\s+/).slice(0,2).map(part => part.charAt(0).toLocaleUpperCase("en-IN")).join("") || "R";
+    }
+    function setProfileStatus(message, isError) {
+      const status = document.querySelector("#profile-status");
+      status.textContent = message;
+      status.classList.toggle("error", Boolean(isError));
+    }
+    function renderTravelerProfile() {
+      const profile = travelerProfile;
+      const initials = profile ? profileInitials(profile.fullName) : "R";
+      document.querySelector("#nav-avatar").textContent = initials;
+      document.querySelector("#profile-avatar").textContent = initials;
+      document.querySelector("#profile-name").textContent = profile ? profile.fullName : "Traveler";
+      document.querySelector("#profile-email").textContent = profile
+        ? profile.email
+        : "Add your details to complete your traveler profile.";
+      const details = [
+        ["Mobile number",profile && profile.phone],
+        ["Date of birth",profile && profile.dateOfBirth],
+        ["Gender",profile && profile.gender],
+        ["Address",profile && profile.address],
+        ["Emergency contact",profile && profile.emergencyName],
+        ["Emergency phone",profile && profile.emergencyPhone]
+      ];
+      document.querySelector("#profile-details").innerHTML = profile ? details.map(([label,value]) => `
+        <div class="profile-detail"><small>${label}</small><strong>${escapeHtml(value || "Not added")}</strong></div>`).join("") : "";
+      document.querySelector("#profile-empty").hidden = Boolean(profile);
+      document.querySelector("#profile-edit").textContent = profile ? "Edit profile" : "Add your details";
+    }
+    function readTravelerProfile() {
+      try {
+        const savedProfile = localStorage.getItem("roam-traveler-profile");
+        if (!savedProfile) return null;
+        const profile = JSON.parse(savedProfile);
+        if (!profile || typeof profile !== "object" || typeof profile.fullName !== "string" ||
+            typeof profile.email !== "string" || typeof profile.phone !== "string") {
+          throw new Error("The saved profile data has an invalid format.");
+        }
+        return Object.fromEntries(
+          ["fullName","email","phone","dateOfBirth","gender","address","emergencyName","emergencyPhone"]
+            .map(key => [key, typeof profile[key] === "string" ? profile[key] : ""])
+        );
+      } catch (error) {
+        setProfileStatus(`Could not load the saved profile: ${error.message}`, true);
+        return null;
+      }
+    }
+    function openProfile() {
+      profileReturnFocus = document.activeElement;
+      renderTravelerProfile();
+      setProfileStatus("", false);
+      const form = document.querySelector("#profile-form");
+      form.hidden = true;
+      let latestBooking = null;
+      try {
+        const savedBooking = sessionStorage.getItem("roam-confirmed-booking");
+        latestBooking = savedBooking ? JSON.parse(savedBooking) : null;
+      } catch (error) {
+        setProfileStatus(`Could not load recent trip details: ${error.message}`, true);
+      }
+      const latest = document.querySelector("#profile-latest");
+      if (latestBooking && typeof latestBooking === "object" && typeof latestBooking.reference === "string") {
+        document.querySelector("#profile-latest-title").textContent = latestBooking.type === "hotel"
+          ? `${latestBooking.operator} · ${latestBooking.to}`
+          : `${latestBooking.from} → ${latestBooking.to}`;
+        document.querySelector("#profile-latest-details").textContent = `${latestBooking.reference} · ${latestBooking.modeLabel} · ${latestBooking.date}`;
+        latest.hidden = false;
+      } else {
+        latest.hidden = true;
+      }
+      const overlay = document.querySelector("#profile-overlay");
+      overlay.classList.add("open");
+      overlay.setAttribute("aria-hidden", "false");
+      document.body.classList.add("feature-open");
+      document.querySelector("#profile-close").focus();
+    }
+    function closeProfile() {
+      const overlay = document.querySelector("#profile-overlay");
+      if (!overlay.classList.contains("open")) return;
+      overlay.classList.remove("open");
+      overlay.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("feature-open");
+      if (profileReturnFocus) profileReturnFocus.focus();
+      profileReturnFocus = null;
+    }
+    function populateProfileForm(profile) {
+      const form = document.querySelector("#profile-form");
+      for (const field of form.elements) {
+        if (field.name && profile && typeof profile[field.name] === "string") field.value = profile[field.name];
+        else if (field.name) field.value = "";
+      }
+    }
+    function renderCityOptions(input) {
+      const wrapper = input.closest(".city-field");
+      const menu = wrapper.querySelector(".city-menu");
+      const query = input.value.trim().toLocaleLowerCase("en-IN");
+      const matches = locations.filter(location =>
+        !query || location.city.toLocaleLowerCase("en-IN").includes(query) ||
+        location.state.toLocaleLowerCase("en-IN").includes(query)
+      );
+      const groups = new Map();
+      matches.forEach(location => {
+        if (!groups.has(location.state)) groups.set(location.state, []);
+        groups.get(location.state).push(location);
+      });
+      menu.innerHTML = groups.size ? Array.from(groups, ([state, items]) =>
+        `<div class="city-group-label">${escapeHtml(state)}</div>${items.map(location =>
+          `<button type="button" class="city-option" id="${input.id}-option-${locations.indexOf(location)}" role="option" aria-selected="false" data-city="${escapeHtml(location.city)}"><strong>${escapeHtml(location.city)}</strong><span>Select city</span></button>`
+        ).join("")}`
+      ).join("") : `<div class="city-empty">No matching cities. Try a state or city name.</div>`;
+    }
+    function openCityMenu(input) {
+      const wrapper = input.closest(".city-field");
+      renderCityOptions(input);
+      wrapper.classList.add("open");
+      input.setAttribute("aria-expanded", "true");
+    }
+    function closeCityMenu(wrapper) {
+      wrapper.classList.remove("open");
+      wrapper.querySelector("input").setAttribute("aria-expanded", "false");
+    }
+    document.querySelectorAll(".city-field input").forEach(input => {
+      input.addEventListener("focus", () => openCityMenu(input));
+      input.addEventListener("input", () => openCityMenu(input));
+      input.addEventListener("keydown", event => {
+        const wrapper = input.closest(".city-field");
+        const options = Array.from(wrapper.querySelectorAll(".city-option"));
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          if (!wrapper.classList.contains("open")) openCityMenu(input);
+          const current = options.findIndex(option => option.classList.contains("active"));
+          const next = event.key === "ArrowDown"
+            ? Math.min(current + 1, options.length - 1)
+            : current < 0 ? options.length - 1 : Math.max(current - 1, 0);
+          options.forEach((option, index) => option.classList.toggle("active", index === next));
+          if (options[next]) input.setAttribute("aria-activedescendant", options[next].id);
+          options[next]?.scrollIntoView({block:"nearest"});
+        } else if (event.key === "Enter" && wrapper.classList.contains("open")) {
+          const active = wrapper.querySelector(".city-option.active");
+          const exact = options.find(option => option.dataset.city.toLocaleLowerCase("en-IN") === input.value.trim().toLocaleLowerCase("en-IN"));
+          const selected = active || exact;
+          if (selected) {
+            event.preventDefault();
+            input.value = selected.dataset.city;
+            input.removeAttribute("aria-activedescendant");
+            closeCityMenu(wrapper);
+            render();
+          }
+        } else if (event.key === "Escape" && wrapper.classList.contains("open")) {
+          closeCityMenu(wrapper);
+        }
+      });
+      const menu = input.closest(".city-field").querySelector(".city-menu");
+      menu.addEventListener("pointerdown", event => event.preventDefault());
+      menu.addEventListener("click", event => {
+        const option = event.target.closest("[data-city]");
+        if (!option) return;
+        input.value = option.dataset.city;
+        input.removeAttribute("aria-activedescendant");
+        closeCityMenu(input.closest(".city-field"));
+        document.querySelector("#form-error").classList.remove("show");
+        render();
+      });
+    });
+    function render() {
+      const data = inventory[activeMode];
+      const hotelList = document.querySelector("#hotel-list");
+      const ticketList = document.querySelector("#ticket-list");
+      const fareSelect = document.querySelector("#fare-select");
+      const showingHotels = activeCategory === "hotel";
+      ticketList.hidden = showingHotels;
+      hotelList.hidden = !showingHotels;
+      fareSelect.hidden = showingHotels;
+      document.querySelector("#fare-selected-label").textContent = data.fares[selectedFare].name;
+      document.querySelector("#fare-list").innerHTML = data.fares.map((fare, index) => `
+        <button type="button" class="select-option ${selectedFare === index ? "active" : ""}" role="option" data-fare="${index}" aria-selected="${selectedFare === index}">
+          <span><strong>${fare.name}</strong><small>${fare.note}</small></span><span class="fare-price">${money(fare.price)}</span>
+        </button>`).join("");
+      const dateLabel = dateInput.value ? new Date(dateInput.value + "T12:00:00").toLocaleDateString("en-IN", {day:"numeric",month:"short"}) : "Today";
+      if (showingHotels) {
+        hotelOptions = hotelInventory.map(hotel => ({...hotel, city:toInput.value.trim()}));
+        hotelList.innerHTML = hotelOptions.map((hotel, hotelIndex) => `
+          <article class="hotel-card" style="animation-delay:${hotelIndex * 70}ms">
+            <div class="hotel-heading">
+              <div class="hotel-heading-top"><div><h3>${escapeHtml(hotel.name)}</h3><p>${escapeHtml(hotel.city)} · ${escapeHtml(hotel.area)}</p></div><span class="hotel-rating">★ ${escapeHtml(hotel.rating)}</span></div>
+            </div>
+            <div class="room-list">${hotel.rooms.map((room, roomIndex) => `
+              <div class="room-option">
+                <img class="room-photo" src="${room.image.replace("w=960&h=720&q=85","w=320&h=240&q=80")}" alt="${escapeHtml(room.name)} room at ${escapeHtml(hotel.name)}" loading="lazy">
+                <div class="room-option-body">
+                  <div><strong>${escapeHtml(room.name)}</strong><small>${escapeHtml(room.detail)}</small></div>
+                  <div class="room-option-bottom"><b>${money(room.price)}<small> / night</small></b><button type="button" class="room-book-button" data-hotel="${hotelIndex}" data-room="${roomIndex}">Book room</button></div>
+                </div>
+              </div>`).join("")}</div>
+          </article>`).join("");
+      } else {
+        ticketList.innerHTML = data.trips.map((trip, index) => {
+          const price = data.fares[selectedFare].price * trip.multiplier;
+          return `<article class="ticket-card" style="animation-delay:${index * 70}ms">
+            <div class="ticket-main">
+              <span class="operator-icon">${symbols[trip.icon]}</span>
+              <div class="operator-info"><strong>${trip.operator}</strong><span>${trip.meta}</span></div>
+              <div class="journey-timing"><div><strong>${trip.depart}</strong><small>${escapeHtml(fromInput.value)}</small></div><div class="journey-line"><span>${trip.duration}</span></div><div><strong>${trip.arrive}</strong><small>${escapeHtml(toInput.value)}</small></div></div>
+            </div>
+            <div class="ticket-side"><div class="price"><strong>${money(price * passengers)}</strong><small>${passengers > 1 ? `total · ${passengers} travelers` : `per person · ${dateLabel}`}</small></div><button class="book-button" type="button" data-trip="${index}">Choose seat <span aria-hidden="true">→</span></button></div>
+          </article>`;
+        }).join("");
+      }
+      document.querySelector("#route-title").textContent = `${fromInput.value} → ${toInput.value}`;
+      const distance = distanceBetween(fromInput.value, toInput.value);
+      document.querySelector("#distance").textContent = distance === null ? "— km" : `${distance} km`;
+      updateRouteMap();
+    }
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    }
+    function notify(message) {
+      const toast = document.querySelector("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 3600);
+    }
+    function openBooking(tripIndex) {
+      activeTrip = tripIndex;
+      const trip = inventory[activeMode].trips[tripIndex];
+      const fare = inventory[activeMode].fares[selectedFare];
+      const layout = activeMode === "bus"
+        ? {rows:12,columns:["A","B","C"],aisleAfter:2,label:"Bus"}
+        : activeMode === "train"
+          ? {rows:12,columns:["A","B","C","D","E","F"],aisleAfter:3,label:"Train coach"}
+          : {rows:20,columns:["A","B","C","D","E","F"],aisleAfter:3,label:"Aircraft"};
+      const seats = [];
+      for (let row = 1; row <= layout.rows; row++) {
+        layout.columns.forEach((column, columnIndex) => {
+          const index = (row - 1) * layout.columns.length + columnIndex;
+          seats.push({name:`${row}${column}`, row, columnIndex, unavailable:(index * 7 + activeTrip * 3) % 19 === 0});
+        });
+      }
+      selectedSeats = [];
+      document.querySelector("#booking-route").textContent = `${fromInput.value} → ${toInput.value}`;
+      document.querySelector("#booking-class").textContent = `${trip.operator} · ${fare.name}`;
+      document.querySelector("#booking-total").textContent = money(fare.price * trip.multiplier * passengers);
+      document.querySelector("#seat-count-label").textContent = `${layout.rows * layout.columns.length} ${layout.label.toLocaleLowerCase("en-US")} seats · choose ${passengers}`;
+      document.querySelector("#seat-error").textContent = "";
+      const seatGrid = document.querySelector("#seat-grid");
+      seatGrid.style.setProperty("--seat-columns", layout.columns.length + (layout.columns.length > 3 ? 1 : 1));
+      seatGrid.className = `seat-grid seat-grid-${activeMode}`;
+      seatGrid.innerHTML = Array.from({length:layout.rows}, (_, rowIndex) => {
+        const row = rowIndex + 1;
+        const rowSeats = seats.filter(seat => seat.row === row);
+        const cells = rowSeats.map((seat, columnIndex) => {
+          const selected = selectedSeats.includes(seat.name);
+          const position = columnIndex + 1 + (columnIndex >= layout.aisleAfter ? 1 : 0);
+          return `<button type="button" class="seat ${selected ? "selected" : ""}" style="grid-column:${position};grid-row:${rowIndex + 1}" data-seat="${seat.name}" aria-pressed="${selected}" ${seat.unavailable ? "disabled aria-label=\"" + seat.name + ", unavailable\"" : "aria-label=\"" + seat.name + ", available\"" }>${seat.name}</button>`;
+        });
+        const aislePosition = layout.aisleAfter + 1;
+        cells.push(`<span class="seat-aisle" aria-hidden="true" style="grid-column:${aislePosition};grid-row:${rowIndex + 1}"></span>`);
+        return cells.join("");
+      }).join("");
+      document.querySelector("#cabin-front").textContent = activeMode === "plane" ? "COCKPIT" : activeMode === "train" ? "COACH FRONT" : "BUS FRONT";
+      const backdrop = document.querySelector("#booking-backdrop");
+      backdrop.classList.add("open");
+      backdrop.setAttribute("aria-hidden", "false");
+      document.querySelector("#dialog-close").focus();
+    }
+    function formatStayDate(nightsFromCheckIn) {
+      const [year, month, day] = dateInput.value.split("-").map(Number);
+      const date = new Date(year, month - 1, day + nightsFromCheckIn);
+      return date.toLocaleDateString("en-IN", {weekday:"short",day:"numeric",month:"short",year:"numeric"});
+    }
+    function updateHotelBookingSummary() {
+      if (!activeHotel) return;
+      const {hotel,room} = activeHotel;
+      document.querySelector("#hotel-preview-property").textContent = `${hotel.name} · ${hotel.city}`;
+      document.querySelector("#hotel-preview-guests").textContent = `${passengers} ${passengers === 1 ? "guest" : "guests"}`;
+      document.querySelector("#hotel-preview-checkin").textContent = formatStayDate(0);
+      document.querySelector("#hotel-preview-checkout").textContent = formatStayDate(hotelNights);
+      document.querySelector("#hotel-night-count").textContent = hotelNights;
+      document.querySelector("#hotel-room-count").textContent = hotelRooms;
+      document.querySelector("#hotel-total").textContent = money(room.price * hotelNights * hotelRooms);
+      document.querySelector("#hotel-total-label").textContent = `${money(room.price)} / room / night`;
+    }
+    function selectHotelRoom(roomIndex) {
+      if (!activeHotel || !activeHotel.hotel.rooms[roomIndex]) return;
+      activeHotel.room = activeHotel.hotel.rooms[roomIndex];
+      const {hotel,room} = activeHotel;
+      const previewImage = document.querySelector("#hotel-preview-image");
+      previewImage.src = room.image;
+      previewImage.alt = `${room.name} at ${hotel.name}`;
+      document.querySelector("#hotel-preview-name").textContent = room.name;
+      document.querySelector("#hotel-preview-detail").textContent = `${hotel.name} · ${hotel.city} · ${hotel.area}`;
+      document.querySelector("#hotel-preview-rating").textContent = `★ ${hotel.rating}`;
+      document.querySelector("#hotel-gallery-label").textContent = room.name;
+      document.querySelector("#hotel-preview-description").textContent = room.description;
+      document.querySelector("#hotel-preview-bed").textContent = room.bed;
+      document.querySelector("#hotel-preview-size").textContent = room.size;
+      document.querySelector("#hotel-preview-occupancy").textContent = room.occupancy;
+      document.querySelector("#hotel-preview-amenities").innerHTML = room.amenities
+        .map(amenity => `<span class="hotel-amenity">${escapeHtml(amenity)}</span>`).join("");
+      document.querySelector("#hotel-preview-policy").textContent = room.policy;
+      document.querySelectorAll("#hotel-gallery-thumbs [data-room]").forEach(button => {
+        const selected = Number(button.dataset.room) === roomIndex;
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      });
+      updateHotelBookingSummary();
+    }
+    function openHotelBooking(hotelIndex, roomIndex) {
+      const hotel = hotelOptions[hotelIndex];
+      if (!hotel || !hotel.rooms[roomIndex]) return;
+      activeHotel = {hotel,room:hotel.rooms[roomIndex]};
+      hotelNights = 1;
+      hotelRooms = Math.max(1, Math.ceil(passengers / 2));
+      document.querySelector("#hotel-gallery-thumbs").innerHTML = hotel.rooms.map((room,index) => `
+        <button type="button" class="hotel-gallery-thumb ${index === roomIndex ? "active" : ""}" data-room="${index}" aria-label="View ${escapeHtml(room.name)}" aria-pressed="${index === roomIndex}">
+          <img src="${room.image.replace("w=960&h=720&q=85","w=320&h=240&q=80")}" alt="" loading="lazy">
+        </button>`).join("");
+      selectHotelRoom(roomIndex);
+      const backdrop = document.querySelector("#hotel-booking-backdrop");
+      backdrop.classList.add("open");
+      backdrop.setAttribute("aria-hidden", "false");
+      document.querySelector("#hotel-dialog-close").focus();
+    }
+    function closeHotelBooking() {
+      const backdrop = document.querySelector("#hotel-booking-backdrop");
+      backdrop.classList.remove("open");
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+    function closeBooking() {
+      const backdrop = document.querySelector("#booking-backdrop");
+      backdrop.classList.remove("open");
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+    document.querySelector("#search-form").addEventListener("submit", event => {
+      event.preventDefault();
+      const from = fromInput.value.trim(), to = toInput.value.trim();
+      const error = document.querySelector("#form-error");
+      if (!cities[from] || !cities[to]) {
+        error.textContent = "Choose a city from the suggestions so we can map your route.";
+        error.classList.add("show");
+        return;
+      }
+      if (from === to) {
+        error.textContent = "Pick two different cities for your journey.";
+        error.classList.add("show");
+        return;
+      }
+      if (!dateInput.value) {
+        error.textContent = "Choose a departure date to see your journey options.";
+        error.classList.add("show");
+        return;
+      }
+      error.classList.remove("show");
+      render();
+      document.querySelector("#journeys").scrollIntoView({behavior:"smooth", block:"start"});
+    });
+    document.querySelector("#swap").addEventListener("click", () => {
+      const previous = fromInput.value;
+      fromInput.value = toInput.value;
+      toInput.value = previous;
+      render();
+    });
+    document.querySelector("#fare-trigger").addEventListener("click", () => {
+      const select = document.querySelector("#fare-select");
+      const open = !select.classList.contains("open");
+      select.classList.toggle("open", open);
+      document.querySelector("#fare-trigger").setAttribute("aria-expanded", String(open));
+    });
+    document.querySelector("#fare-list").addEventListener("click", event => {
+      const option = event.target.closest("[data-fare]");
+      if (!option) return;
+      selectedFare = Number(option.dataset.fare);
+      document.querySelector("#fare-select").classList.remove("open");
+      document.querySelector("#fare-trigger").setAttribute("aria-expanded", "false");
+      render();
+    });
+    document.querySelector("#plus").addEventListener("click", () => {
+      passengers = Math.min(8, passengers + 1);
+      document.querySelector("#passenger-count").textContent = passengers;
+      render();
+    });
+    document.querySelector("#minus").addEventListener("click", () => {
+      passengers = Math.max(1, passengers - 1);
+      document.querySelector("#passenger-count").textContent = passengers;
+      render();
+    });
+    document.querySelectorAll(".trip-toggle button").forEach(button => button.addEventListener("click", () => {
+      document.querySelectorAll(".trip-toggle button").forEach(item => item.classList.toggle("active", item === button));
+      if (button.dataset.trip === "round-trip") notify("Round-trip search selected. Return dates can be added when you book.");
+    }));
+    document.querySelectorAll(".mode-tab[data-mode]").forEach(button => button.addEventListener("click", () => {
+      activeMode = button.dataset.mode;
+      activeCategory = "transport";
+      selectedFare = 0;
+      document.querySelectorAll(".mode-tab").forEach(item => {
+        const active = item === button;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", String(active));
+      });
+      render();
+    }));
+    document.querySelector('[data-category="hotel"]').addEventListener("click", event => {
+      activeCategory = "hotel";
+      document.querySelectorAll(".mode-tab").forEach(item => {
+        const active = item === event.currentTarget;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", String(active));
+      });
+      render();
+    });
+    document.querySelector("#ticket-list").addEventListener("click", event => {
+      const button = event.target.closest("[data-trip]");
+      if (!button) return;
+      openBooking(Number(button.dataset.trip));
+    });
+    document.querySelector("#hotel-list").addEventListener("click", event => {
+      const button = event.target.closest("[data-hotel][data-room]");
+      if (!button) return;
+      openHotelBooking(Number(button.dataset.hotel), Number(button.dataset.room));
+    });
+    document.querySelector("#hotel-gallery-thumbs").addEventListener("click", event => {
+      const button = event.target.closest("[data-room]");
+      if (!button) return;
+      selectHotelRoom(Number(button.dataset.room));
+    });
+    document.querySelector("#hotel-night-minus").addEventListener("click", () => {
+      hotelNights = Math.max(1, hotelNights - 1);
+      updateHotelBookingSummary();
+    });
+    document.querySelector("#hotel-night-plus").addEventListener("click", () => {
+      hotelNights = Math.min(30, hotelNights + 1);
+      updateHotelBookingSummary();
+    });
+    document.querySelector("#hotel-room-minus").addEventListener("click", () => {
+      hotelRooms = Math.max(1, hotelRooms - 1);
+      updateHotelBookingSummary();
+    });
+    document.querySelector("#hotel-room-plus").addEventListener("click", () => {
+      hotelRooms = Math.min(8, hotelRooms + 1);
+      updateHotelBookingSummary();
+    });
+    document.querySelector("#confirm-hotel-booking").addEventListener("click", () => {
+      if (!activeHotel) return;
+      const {hotel,room} = activeHotel;
+      const booking = {
+        type:"hotel",
+        reference:`ROAM-${Date.now().toString(36).toUpperCase()}`,
+        modeLabel:"Hotel stay",
+        from:hotel.name,
+        to:hotel.city,
+        date:dateInput.value,
+        checkOutDate:formatStayDate(hotelNights),
+        journeyType:"hotel-stay",
+        operator:hotel.name,
+        meta:`${hotel.area} · ${hotel.city}`,
+        fareName:room.name,
+        fareNote:room.detail,
+        depart:"2:00 PM",
+        arrive:"11:00 AM",
+        duration:`${hotelNights} ${hotelNights === 1 ? "night" : "nights"}`,
+        seats:[`${hotelRooms} ${hotelRooms === 1 ? "room" : "rooms"}`],
+        passengers,
+        hotelRooms,
+        hotelNights,
+        total:Math.round(room.price * hotelNights * hotelRooms),
+        distance:null
+      };
+      try {
+        sessionStorage.setItem("roam-confirmed-booking", JSON.stringify(booking));
+      } catch (error) {
+        document.querySelector("#hotel-booking-error").textContent = "Could not save your booking details in this browser. Check storage settings and try again.";
+        return;
+      }
+      window.location.href = "confirmation.html";
+    });
+    document.querySelector("#hotel-dialog-close").addEventListener("click", closeHotelBooking);
+    document.querySelector("#hotel-booking-backdrop").addEventListener("click", event => {
+      if (event.target.id === "hotel-booking-backdrop") closeHotelBooking();
+    });
+    document.querySelector("#seat-grid").addEventListener("click", event => {
+      const button = event.target.closest("[data-seat]");
+      if (!button || button.disabled) return;
+      const seat = button.dataset.seat;
+      if (selectedSeats.includes(seat)) selectedSeats = selectedSeats.filter(item => item !== seat);
+      else if (selectedSeats.length < passengers) selectedSeats.push(seat);
+      document.querySelectorAll("#seat-grid [data-seat]").forEach(item => {
+        const selected = selectedSeats.includes(item.dataset.seat);
+        item.classList.toggle("selected", selected);
+        item.setAttribute("aria-pressed", String(selected));
+      });
+      document.querySelector("#seat-error").textContent = "";
+    });
+    document.querySelector("#confirm-booking").addEventListener("click", () => {
+      if (selectedSeats.length !== passengers) {
+        document.querySelector("#seat-error").textContent = `Please select ${passengers} ${passengers === 1 ? "seat" : "seats"} for your travelers.`;
+        return;
+      }
+      const trip = inventory[activeMode].trips[activeTrip];
+      const fare = inventory[activeMode].fares[selectedFare];
+      const booking = {
+        reference:`ROAM-${Date.now().toString(36).toUpperCase()}`,
+        mode:activeMode,
+        modeLabel:activeMode === "bus" ? "Bus" : activeMode === "train" ? "Train" : "Plane",
+        from:fromInput.value.trim(),
+        to:toInput.value.trim(),
+        date:dateInput.value,
+        journeyType:document.querySelector(".trip-toggle button.active").dataset.trip,
+        operator:trip.operator,
+        meta:trip.meta,
+        fareName:fare.name,
+        fareNote:fare.note,
+        depart:trip.depart,
+        arrive:trip.arrive,
+        duration:trip.duration,
+        seats:[...selectedSeats],
+        passengers,
+        total:Math.round(fare.price * trip.multiplier * passengers),
+        distance:distanceBetween(fromInput.value.trim(), toInput.value.trim())
+      };
+      try {
+        sessionStorage.setItem("roam-confirmed-booking", JSON.stringify(booking));
+      } catch (error) {
+        document.querySelector("#seat-error").textContent = "Could not save your booking details in this browser. Check storage settings and try again.";
+        return;
+      }
+      window.location.href = "confirmation.html";
+    });
+    document.querySelector("#dialog-close").addEventListener("click", closeBooking);
+    document.querySelector("#booking-backdrop").addEventListener("click", event => {
+      if (event.target.id === "booking-backdrop") closeBooking();
+    });
+    document.querySelector("#explore-trigger").addEventListener("click", openExploreMap);
+    document.querySelector("#map-expand-trigger").addEventListener("click", openExploreMap);
+    document.querySelector("#map-close").addEventListener("click", closeExploreMap);
+    document.querySelector("#map-overlay").addEventListener("click", event => {
+      if (event.target.id === "map-overlay") closeExploreMap();
+    });
+    document.querySelectorAll("[data-map-mode]").forEach(button => button.addEventListener("click", () => {
+      document.querySelector(`[data-mode="${button.dataset.mapMode}"]`).click();
+      document.querySelectorAll("[data-map-mode]").forEach(tab => {
+        const active = tab === button;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-pressed", String(active));
+      });
+    }));
+    document.querySelector("#profile-trigger").addEventListener("click", openProfile);
+    document.querySelector("#profile-close").addEventListener("click", closeProfile);
+    document.querySelector("#profile-overlay").addEventListener("click", event => {
+      if (event.target.id === "profile-overlay") closeProfile();
+    });
+    document.querySelector("#profile-edit").addEventListener("click", () => {
+      populateProfileForm(travelerProfile);
+      document.querySelector("#profile-form").hidden = false;
+      document.querySelector("#profile-full-name").focus();
+    });
+    document.querySelector("#profile-cancel").addEventListener("click", () => {
+      document.querySelector("#profile-form").hidden = true;
+      setProfileStatus("", false);
+    });
+    document.querySelector("#profile-form").addEventListener("submit", event => {
+      event.preventDefault();
+      const phoneInput = document.querySelector("#profile-phone-input");
+      const emergencyPhoneInput = document.querySelector("#profile-emergency-phone");
+      const phonePattern = /^[0-9+(). -]{8,20}$/;
+      phoneInput.setCustomValidity(phonePattern.test(phoneInput.value.trim()) ? "" : "Enter a phone number using digits and common phone symbols.");
+      emergencyPhoneInput.setCustomValidity(!emergencyPhoneInput.value.trim() || phonePattern.test(emergencyPhoneInput.value.trim())
+        ? ""
+        : "Enter a phone number using digits and common phone symbols.");
+      if (!event.currentTarget.reportValidity()) return;
+      const formData = new FormData(event.currentTarget);
+      const profile = Object.fromEntries(Array.from(formData, ([key,value]) => [key, String(value).trim()]));
+      profile.email = profile.email.toLocaleLowerCase("en-US");
+      try {
+        localStorage.setItem("roam-traveler-profile", JSON.stringify(profile));
+      } catch (error) {
+        setProfileStatus(`Could not save your profile: ${error.message}`, true);
+        return;
+      }
+      travelerProfile = profile;
+      phoneInput.setCustomValidity("");
+      emergencyPhoneInput.setCustomValidity("");
+      renderTravelerProfile();
+      document.querySelector("#profile-form").hidden = true;
+      setProfileStatus("Profile details saved on this device.", false);
+    });
+    document.addEventListener("click", event => {
+      document.querySelectorAll(".city-field.open").forEach(wrapper => {
+        if (!wrapper.contains(event.target)) closeCityMenu(wrapper);
+      });
+      const fareSelect = document.querySelector("#fare-select");
+      if (!fareSelect.contains(event.target)) {
+        fareSelect.classList.remove("open");
+        document.querySelector("#fare-trigger").setAttribute("aria-expanded", "false");
+      }
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeBooking();
+        closeHotelBooking();
+        closeExploreMap();
+        closeProfile();
+        document.querySelectorAll(".city-field.open").forEach(closeCityMenu);
+        document.querySelector("#fare-select").classList.remove("open");
+        document.querySelector("#fare-trigger").setAttribute("aria-expanded", "false");
+      }
+    });
+    travelerProfile = readTravelerProfile();
+    renderTravelerProfile();
+    document.querySelector("#profile-dob").max = dateInput.value;
+    render();
+    const loadingStarted = performance.now();
+    const minimumLoaderTime = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 300 : 1800;
+    const pageReady = new Promise(resolve => {
+      if (document.readyState === "complete") resolve();
+      else window.addEventListener("load", resolve, {once:true});
+    });
+    const loadingFailsafe = new Promise(resolve => setTimeout(resolve, 3000));
+    Promise.race([pageReady, loadingFailsafe]).then(() => {
+      const remainingTime = Math.max(0, minimumLoaderTime - (performance.now() - loadingStarted));
+      setTimeout(() => {
+        const loadingScreen = document.querySelector("#loading-screen");
+        document.body.classList.remove("is-loading");
+        document.body.classList.add("is-ready");
+        loadingScreen.classList.add("dismissed");
+        setTimeout(() => loadingScreen.remove(), 650);
+      }, remainingTime);
+    });
+  </script>
+</body>
+</html>
